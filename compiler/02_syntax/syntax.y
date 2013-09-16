@@ -5,6 +5,11 @@
 %}
 
 /* BISON Declarations */
+%start Program
+%union {
+        int intVal;
+        char* charVal;
+}
 %token NUM
 %left '-' '+'
 %left '*' '/'
@@ -14,42 +19,181 @@
 /* Grammar follows */
 %%
 
-Program:	ConstantDecl TypeDecl VarDecl 
-		| 
+Program:	CDecl TDecl VDecl PFDecl Block
 
-ConstantDecl: 	const <ident> = ConstExpression ; ConstantDecl
-				| const <ident> = ConstExpression ; 
+CDecl:          ConstantDecl
+                | /* nothing */
+
+TDecl:          TypeDecl
+                | /* nothing */
+
+VDecl:          VarDecl
+                | /* nothing */
+
+PFDecl:         PFDecl PFDecl
+                | ProcedureDecl
+                | FunctionDecl
+                | /* nothing */
+
+
+
+ConstantDecl:   const <ident> = ConstExpression ; ConstantDecl
+		| const <ident> = ConstExpression ; 
+
+
 
 ProcedureDecl: 	procedure <ident> ( FormalParameters ) ; forward ;
-				| procedure <ident> ( FormalParameters ) ; Body ;
+		| procedure <ident> ( FormalParameters ) ; Body ;
 
 FunctionDecl:	function <ident> ( FormalParameters ) : Type ; for-ward ;
-				| function <ident> ( FormalParameters ) : Type ; Body ;
+		| function <ident> ( FormalParameters ) : Type ; Body ;
 
-FormalParameters: /* empty string */
-				| FormalParameters var? IdentList : Type (; var? IdentList : Type )*
-				| var? IdentList : Type (; var? IdentList : Type )*
+FormalParameters: /* nothing */
+		| FormalParameter
+                | FormalParameter ; FormalParameter
 
-Body:			ConstantDecl TypeDecl VarDecl Block
+FormalParameter: var IdentList : Type
+                | IdentList : Type
 
-Block:			begin StatementSequence end
+Body:           CDecl TDecl VDecl Block
+
+Block:          begin StatementSequence end
 
 
-input:    /* empty string */
-        | input line
-;
 
-line:     '\n'
-        | exp '\n'  { printf ("\t%.10g\n", $1); }
-;
 
-exp:      NUM                { $$ = $1;         }
-        | exp '+' exp        { $$ = $1 + $3;    }
-        | exp '-' exp        { $$ = $1 - $3;    }
-        | exp '*' exp        { $$ = $1 * $3;    }
-        | exp '/' exp        { $$ = $1 / $3;    }
-        | '-' exp  %prec NEG { $$ = -$2;        }
-        | exp '^' exp        { $$ = pow ($1, $3); }
-        | '(' exp ')'        { $$ = $2;         }
-;
+TypeDecl:       type ident = Type ;
+                | type ident = Type ; TypeDecl
+
+Type:           SimpleType
+                | RecordType
+                | ArrayType
+
+SimpleType:     ident
+
+RecordType:     record RecordItem end
+
+RecordItem:     /* nothing */
+                | IdentList : Type ;
+                | IdentList : Type ; RecordItem
+
+ArrayType:      array [ ConstExpression : ConstExpression ] of Type
+
+IdentList:      ident
+                | ident IdentList
+
+
+
+VarDecl:        var VarDeclStuff
+
+VarDeclStuff:   IdentList : Type ;
+                | IdentList : Type ; VarDeclStuff
+
+
+
+StatementSequence: Statement
+                | Statement ; Statement
+
+Statement:      Assignemnt
+                | IfStatement
+                | WhileStatement
+                | RepeatStatement
+                | ForStatement
+                | StopStatement
+                | ReturnStatement
+                | ReadStatement
+                | WriteStatement
+                | ProcedureCall
+                | NullStatement
+
+Assignemnt:     LValue := Expression 
+
+IfStatement:    if Expression then StatementSequence ElseIfPart ElsePart end
+
+ElseIfPart:     /* nothing */
+                | elseif Expression then StatementSequence
+                | ElseIfPart ElseIfPart
+
+ElsePart:       /* nothing */
+                | else StatementSequence
+
+WhileStatement: while Expression do StatementSequence end
+
+RepeatStatement: repeat StatementSequence until Expression
+
+ForStatement:   for ident := Expression to Expression do StatementSequence end
+
+StopStatement:  stop
+
+ReturnStatement: return 
+                | return Expression
+
+ReadStatement:  read ( LValStuff )
+
+LValStuff:      LValue
+                | LValue , LValStuff
+
+WriteStatement: write ( ExpressionList )
+
+ExpressionList: Expression
+                | Expression , ExpressionList
+
+ProcedureCall: ident ( )
+                | ident ( ExpressionList )
+
+NullStatement:  /* nothing */
+
+
+
+Expression:      Expression | Expression
+                | Expression & Expression
+                | Expression = Expression
+                | Expression <> Expression
+                | Expression <= Expression
+                | Expression >= Expression
+                | Expression < Expression
+                | Expression > Expression
+                | Expression + Expression
+                | Expression - Expression
+                | Expression * Expression
+                | Expression / Expression
+                | Expression % Expression
+                | ~ Expression
+                | - Expression
+                | ( Expression )
+                | ident ( )
+                | ident ( ExpressionList )
+                | chr ( Expression )
+                | ord ( Expression )
+                | pred ( Expression )
+                | succ ( Expression )
+                | LValue
+                | ConstExpression
+
+LValue:         ident
+                | ident . ident
+                | ident [ Expression ]
+
+ConstExpression: ConstExpression | ConstExpression
+                | ConstExpression & ConstExpression
+                | ConstExpression = ConstExpression
+                | ConstExpression <> ConstExpression
+                | ConstExpression <= ConstExpression
+                | ConstExpression >= ConstExpression
+                | ConstExpression < ConstExpression
+                | ConstExpression > ConstExpression
+                | ConstExpression + ConstExpression
+                | ConstExpression - ConstExpression
+                | ConstExpression * ConstExpression
+                | ConstExpression / ConstExpression
+                | ConstExpression % ConstExpression
+                | ~ ConstExpression
+                | - ConstExpression
+                | ( ConstExpression )
+                | intconst
+                | charconst
+                | strconst
+                | ident
+
+
 %%
