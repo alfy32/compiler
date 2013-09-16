@@ -6,15 +6,21 @@
 
 /* BISON Declarations */
 %start Program
+
 %union {
         int intVal;
         char* charVal;
 }
+
 %token NUM
-%left '-' '+'
-%left '*' '/'
-%left NEG     /* negation--unary minus */
-%right '^'    /* exponentiation        */
+
+%right          NEG
+%lefy           '*' '/' '%'
+%left           '-' '+' 
+%nonassoc       '=' '<>' '<' '<=' '>' '>='
+%right          '̃'
+%left           '&'
+%left           '|'
 
 /* Grammar follows */
 %%
