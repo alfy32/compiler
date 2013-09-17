@@ -12,93 +12,170 @@
         char* charVal;
 }
 
-%token NUM
+%token  NEG_SYM
+        MULTIPLY_SYM
+        DIVIDE_SYM
+        MOD_SYM
+        SUBTRACT_SYM
+        ADD_SYM
+        EQUAL_SYM
+        LT_GT_SYM
+        LT_SYM
+        LT_EQ_SYM
+        GT_SYM
+        GT_EQ_SYM
+        TILDE_SYM
+        AND_SYM
+        OR_SYM
+        COLON_SYM
+        SEMICOLON_SYM
+        L_PAREN_SYM
+        R_PAREN_SYM
+        L_BRACKET_SYM
+        R_BRACKET_SYM
+        ASSIGNMENT_SYM
+        COMMA_SYM
+        DOT_SYM
+
+        CONST_SYM
+        PROCEDURE_SYM
+        FUNCTION_SYM
+        IDENT_SYM
+        BEGIN_SYM
+        END_SYM
+        IF_SYM
+        ELSE_SYM
+        ELSEIF_SYM
+        WHILE_SYM
+        DO_SYM
+        FOR_SYM
+        RETURN_SYM
+        READ_SYM 
+        ARRAY_SYM
+        INT_CONST_SYM
+        CHAR_CONST_SYM
+        STR_CONST_SYM
+        CHAR_SYM
+        FORWARD_SYM
+        OF_SYM
+        
+        ORD_SYM
+        PRED_SYM
+        RECORD_SYM
+        REPEAT_SYM
+        STOP_SYM
+        SUCC_SYM
+        THEN_SYM
+        TO_SYM
+        UNTIL_SYM
+        VAR_SYM
+        WRITE_SYM
 
 %right          NEG
-%lefy           '*' '/' '%'
-%left           '-' '+' 
-%nonassoc       '=' '<>' '<' '<=' '>' '>='
-%right          '̃'
-%left           '&'
-%left           '|'
+%left           MULTIPLY_SYM DIVIDE_SYM MOD_SYM
+%left           SUBTRACT_SYM ADD_SYM
+%nonassoc       EQUAL_SYM LT_GT_SYM LT_SYM LT_EQ_SYM GT_SYM GT_EQ_SYM
+%right          TILDE_SYM
+%left           AND_SYM
+%left           OR_SYM
 
-/* Grammar follows */
 %%
 
-Program:	CDecl TDecl VDecl PFDecl Block
+Program:	CDecl TDecl VDecl PFDecl Block 
+                ;
 
 CDecl:          ConstantDecl
                 | /* nothing */
+                ;
 
 TDecl:          TypeDecl
                 | /* nothing */
+                ;
 
 VDecl:          VarDecl
                 | /* nothing */
+                ;
 
 PFDecl:         PFDecl PFDecl
                 | ProcedureDecl
                 | FunctionDecl
                 | /* nothing */
+                ;
 
 
 
-ConstantDecl:   const <ident> = ConstExpression ; ConstantDecl
-		| const <ident> = ConstExpression ; 
+ConstantDecl:   CONST_SYM  IDENT_SYM  EQUAL_SYM ConstExpression SEMICOLON_SYM ConstantDecl
+		| CONST_SYM  IDENT_SYM  EQUAL_SYM ConstExpression SEMICOLON_SYM 
+                ;
 
 
+ProcedureDecl: 	PROCEDURE_SYM  IDENT_SYM  L_PAREN_SYM FormalParameters R_PAREN_SYM SEMICOLON_SYM FORWARD_SYM ;
+                | PROCEDURE_SYM  IDENT_SYM  L_PAREN_SYM FormalParameters R_PAREN_SYM SEMICOLON_SYM Body SEMICOLON_SYM
+                ;
 
-ProcedureDecl: 	procedure <ident> ( FormalParameters ) ; forward ;
-		| procedure <ident> ( FormalParameters ) ; Body ;
-
-FunctionDecl:	function <ident> ( FormalParameters ) : Type ; for-ward ;
-		| function <ident> ( FormalParameters ) : Type ; Body ;
+FunctionDecl:	FUNCTION_SYM  IDENT_SYM  L_PAREN_SYM FormalParameters R_PAREN_SYM COLON_SYM Type SEMICOLON_SYM FORWARD_SYM SEMICOLON_SYM
+		| FUNCTION_SYM  IDENT_SYM  L_PAREN_SYM FormalParameters R_PAREN_SYM COLON_SYM Type SEMICOLON_SYM Body SEMICOLON_SYM
+                ;
 
 FormalParameters: /* nothing */
 		| FormalParameter
-                | FormalParameter ; FormalParameter
+                | FormalParameter SEMICOLON_SYM FormalParameter
+                ;
 
-FormalParameter: var IdentList : Type
-                | IdentList : Type
+FormalParameter: VAR_SYM IdentList COLON_SYM Type
+                | IdentList COLON_SYM Type
+                ;
 
 Body:           CDecl TDecl VDecl Block
+                ;
 
-Block:          begin StatementSequence end
+Block:          BEGIN_SYM StatementSequence END_SYM 
+                ;
 
 
 
 
-TypeDecl:       type ident = Type ;
-                | type ident = Type ; TypeDecl
+TypeDecl:       Type IDENT_SYM  EQUAL_SYM Type SEMICOLON_SYM
+                | Type IDENT_SYM  EQUAL_SYM Type SEMICOLON_SYM TypeDecl
+                ;
 
 Type:           SimpleType
                 | RecordType
                 | ArrayType
+                ;
 
-SimpleType:     ident
+SimpleType:     IDENT_SYM 
+                ;
 
-RecordType:     record RecordItem end
+RecordType:     RECORD_SYM RecordItem END_SYM 
+                ;
 
-RecordItem:     /* nothing */
-                | IdentList : Type ;
-                | IdentList : Type ; RecordItem
+RecordItem:     IdentList COLON_SYM Type SEMICOLON_SYM
+                | IdentList COLON_SYM Type SEMICOLON_SYM RecordItem
+                | /* nothing */
+                ;
 
-ArrayType:      array [ ConstExpression : ConstExpression ] of Type
+ArrayType:      ARRAY_SYM  L_BRACKET_SYM ConstExpression COLON_SYM ConstExpression R_BRACKET_SYM OF_SYM Type
+                ;
 
-IdentList:      ident
-                | ident IdentList
+IdentList:      IDENT_SYM 
+                | IDENT_SYM  IdentList
+                ;
 
 
 
-VarDecl:        var VarDeclStuff
+VarDecl:        VAR_SYM VarDeclStuff
+                ;
 
-VarDeclStuff:   IdentList : Type ;
-                | IdentList : Type ; VarDeclStuff
+VarDeclStuff:   IdentList COLON_SYM Type SEMICOLON_SYM
+                | IdentList COLON_SYM Type SEMICOLON_SYM VarDeclStuff
+                ;
 
 
 
 StatementSequence: Statement
-                | Statement ; Statement
+                | Statement SEMICOLON_SYM Statement
+                ;
 
 Statement:      Assignemnt
                 | IfStatement
@@ -111,95 +188,113 @@ Statement:      Assignemnt
                 | WriteStatement
                 | ProcedureCall
                 | NullStatement
+                ;
 
-Assignemnt:     LValue := Expression 
+Assignemnt:     LValue ASSIGNMENT_SYM Expression 
+                ;
 
-IfStatement:    if Expression then StatementSequence ElseIfPart ElsePart end
+IfStatement:    IF_SYM  Expression THEN_SYM StatementSequence ElseIfPart ElsePart END_SYM 
+                ;
 
-ElseIfPart:     /* nothing */
-                | elseif Expression then StatementSequence
+ElseIfPart:     ELSEIF_SYM  Expression THEN_SYM StatementSequence
                 | ElseIfPart ElseIfPart
+                | /* nothing */
+                ;
 
-ElsePart:       /* nothing */
-                | else StatementSequence
+ElsePart:       ELSE_SYM  StatementSequence
+                | /* nothing */
+                ;
 
-WhileStatement: while Expression do StatementSequence end
+WhileStatement: WHILE_SYM  Expression DO_SYM  StatementSequence END_SYM 
+                ;
 
-RepeatStatement: repeat StatementSequence until Expression
+RepeatStatement: REPEAT_SYM StatementSequence UNTIL_SYM Expression
+                ;
 
-ForStatement:   for ident := Expression to Expression do StatementSequence end
+ForStatement:   FOR_SYM  IDENT_SYM  ASSIGNMENT_SYM Expression TO_SYM Expression DO_SYM  StatementSequence END_SYM 
+                ;
 
-StopStatement:  stop
+StopStatement:  STOP_SYM
+                ;
 
-ReturnStatement: return 
-                | return Expression
+ReturnStatement: RETURN_SYM  
+                | RETURN_SYM  Expression
+                ;
 
-ReadStatement:  read ( LValStuff )
+ReadStatement:  READ_SYM  L_PAREN_SYM LValStuff R_PAREN_SYM
+                ;
 
 LValStuff:      LValue
-                | LValue , LValStuff
+                | LValue COMMA_SYM LValStuff
+                ;
 
-WriteStatement: write ( ExpressionList )
+WriteStatement: WRITE_SYM L_PAREN_SYM ExpressionList R_PAREN_SYM
+                ;
 
 ExpressionList: Expression
-                | Expression , ExpressionList
+                | Expression COMMA_SYM ExpressionList
+                ;
 
-ProcedureCall: ident ( )
-                | ident ( ExpressionList )
+ProcedureCall: IDENT_SYM  L_PAREN_SYM R_PAREN_SYM
+                | IDENT_SYM  L_PAREN_SYM ExpressionList R_PAREN_SYM
+                ;
 
 NullStatement:  /* nothing */
+                ;
 
 
 
-Expression:      Expression | Expression
-                | Expression & Expression
-                | Expression = Expression
-                | Expression <> Expression
-                | Expression <= Expression
-                | Expression >= Expression
-                | Expression < Expression
-                | Expression > Expression
-                | Expression + Expression
-                | Expression - Expression
-                | Expression * Expression
-                | Expression / Expression
-                | Expression % Expression
-                | ~ Expression
-                | - Expression
-                | ( Expression )
-                | ident ( )
-                | ident ( ExpressionList )
-                | chr ( Expression )
-                | ord ( Expression )
-                | pred ( Expression )
-                | succ ( Expression )
+Expression:      Expression OR_SYM Expression
+                | Expression AND_SYM Expression
+                | Expression EQUAL_SYM Expression
+                | Expression LT_GT_SYM Expression
+                | Expression LT_EQ_SYM Expression
+                | Expression GT_EQ_SYM Expression
+                | Expression LT_SYM Expression
+                | Expression GT_SYM Expression
+                | Expression ADD_SYM Expression
+                | Expression SUBTRACT_SYM Expression
+                | Expression MULTIPLY_SYM Expression
+                | Expression DIVIDE_SYM Expression
+                | Expression MOD_SYM Expression
+                | TILDE_SYM Expression
+                | NEG_SYM Expression
+                | L_PAREN_SYM Expression R_PAREN_SYM
+                | IDENT_SYM  L_PAREN_SYM R_PAREN_SYM
+                | IDENT_SYM  L_PAREN_SYM ExpressionList R_PAREN_SYM
+                | CHAR_SYM L_PAREN_SYM Expression R_PAREN_SYM
+                | ORD_SYM  L_PAREN_SYM Expression R_PAREN_SYM
+                | PRED_SYM  L_PAREN_SYM Expression R_PAREN_SYM
+                | SUCC_SYM L_PAREN_SYM Expression R_PAREN_SYM
                 | LValue
                 | ConstExpression
+                ;
 
-LValue:         ident
-                | ident . ident
-                | ident [ Expression ]
+LValue:         IDENT_SYM 
+                | IDENT_SYM  DOT_SYM IDENT_SYM 
+                | IDENT_SYM  L_BRACKET_SYM Expression R_BRACKET_SYM
+                ;
 
-ConstExpression: ConstExpression | ConstExpression
-                | ConstExpression & ConstExpression
-                | ConstExpression = ConstExpression
-                | ConstExpression <> ConstExpression
-                | ConstExpression <= ConstExpression
-                | ConstExpression >= ConstExpression
-                | ConstExpression < ConstExpression
-                | ConstExpression > ConstExpression
-                | ConstExpression + ConstExpression
-                | ConstExpression - ConstExpression
-                | ConstExpression * ConstExpression
-                | ConstExpression / ConstExpression
-                | ConstExpression % ConstExpression
-                | ~ ConstExpression
-                | - ConstExpression
-                | ( ConstExpression )
-                | intconst
-                | charconst
-                | strconst
-                | ident
-
+ConstExpression: ConstExpression OR_SYM ConstExpression
+                | ConstExpression AND_SYM ConstExpression
+                | ConstExpression EQUAL_SYM ConstExpression
+                | ConstExpression LT_GT_SYM ConstExpression
+                | ConstExpression LT_EQ_SYM ConstExpression
+                | ConstExpression GT_EQ_SYM ConstExpression
+                | ConstExpression LT_SYM ConstExpression
+                | ConstExpression GT_SYM ConstExpression
+                | ConstExpression ADD_SYM ConstExpression
+                | ConstExpression SUBTRACT_SYM ConstExpression
+                | ConstExpression MULTIPLY_SYM ConstExpression
+                | ConstExpression DIVIDE_SYM ConstExpression
+                | ConstExpression MOD_SYM ConstExpression
+                | TILDE_SYM ConstExpression
+                | NEG_SYM ConstExpression
+                | L_PAREN_SYM ConstExpression R_PAREN_SYM
+                | INT_CONST_SYM
+                | CHAR_CONST_SYM
+                | STR_CONST_SYM
+                | IDENT_SYM 
+                ;
 
 %%
