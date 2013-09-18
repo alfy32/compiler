@@ -1,18 +1,22 @@
-all: cpsl.y cpsl.l
-	bison -d cpsl.y
-	flex -f cpsl.l
+all: cpsl
 
-build: 
+cpsl: bison.o lex.o main.o
+	g++ bison.o lex.o main.o -o cpsl
 
-lex: cpsl.l
-	flex -f cpsl.l
-	g++ lex.yy.c -o lex
+lex.o: lex.yy.c
+	g++ -c lex.yy.c -o lex.o
 
-bison: cpsl.y 
-	bison -d -v cpsl.y 
+lex.yy.c: cpsl.l
+	flex cpsl.l
 
-run: 
-	./lex test_lex
+bison.o: bison.c
+	g++ -c cpsl.tab.c -o bison.o
+
+bison.c: cpsl.y
+	bison -d -v cpsl.y
+
+main.o: main.cpp
+	g++ -c main.cpp -o main.o
 
 clean:
 	rm -f *.o
@@ -22,4 +26,13 @@ clean:
 
 	rm -f cpsl.tab*
 	rm -f cpsl.output
-	
+
+	rm -f cpsl
+
+lex: cpsl.l
+	flex -f cpsl.l
+	g++ lex.yy.c -o lex
+	./lex test_lex
+
+bison: cpsl.y 
+	bison -d -v cpsl.y 

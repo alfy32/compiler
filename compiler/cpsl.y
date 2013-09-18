@@ -1,16 +1,16 @@
 
 %{
-#define YYSTYPE double
-#include <math.h>
+#include "heading.h"
+int yyerror(char *s);
+int yylex(void);
 %}
 
-/* BISON Declarations */
-%start Program
-
 %union {
-        int intVal;
-        char* charVal;
+        int int_val;
+        string* op_val;
 }
+
+%start Program
  
 %token  NEG_SYM
         MULTIPLY_SYM
@@ -19,7 +19,7 @@
         SUBTRACT_SYM
         ADD_SYM
         EQUAL_SYM
-        LT_GT_SYM
+        NOT_EQUAL_SYM
         LT_SYM
         LT_EQ_SYM
         GT_SYM
@@ -70,11 +70,12 @@
         UNTIL_SYM
         VAR_SYM
         WRITE_SYM
+        DOWNTO_SYM /* this needs to be added to grammer */
 
 %right          NEG_SYM
 %left           MULTIPLY_SYM DIVIDE_SYM MOD_SYM
 %left           SUBTRACT_SYM ADD_SYM
-%nonassoc       EQUAL_SYM LT_GT_SYM LT_SYM LT_EQ_SYM GT_SYM GT_EQ_SYM
+%nonassoc       EQUAL_SYM NOT_EQUAL_SYM LT_SYM LT_EQ_SYM GT_SYM GT_EQ_SYM
 %right          TILDE_SYM
 %left           AND_SYM
 %left           OR_SYM
@@ -250,7 +251,7 @@ NullStatement:  /* nothing */
 Expression:      Expression OR_SYM Expression
                 | Expression AND_SYM Expression
                 | Expression EQUAL_SYM Expression
-                | Expression LT_GT_SYM Expression
+                | Expression NOT_EQUAL_SYM Expression
                 | Expression LT_EQ_SYM Expression
                 | Expression GT_EQ_SYM Expression
                 | Expression LT_SYM Expression
@@ -281,7 +282,7 @@ LValue:         IDENT_SYM
 ConstExpression: ConstExpression OR_SYM ConstExpression
                 | ConstExpression AND_SYM ConstExpression
                 | ConstExpression EQUAL_SYM ConstExpression
-                | ConstExpression LT_GT_SYM ConstExpression
+                | ConstExpression NOT_EQUAL_SYM ConstExpression
                 | ConstExpression LT_EQ_SYM ConstExpression
                 | ConstExpression GT_EQ_SYM ConstExpression
                 | ConstExpression LT_SYM ConstExpression
@@ -301,3 +302,18 @@ ConstExpression: ConstExpression OR_SYM ConstExpression
                 ;
 
 %%
+
+int yyerror(string s)
+{
+        extern int yylineno;  
+        extern char *yytext;  
+
+        cerr << "ERROR: " << s << " at symbol \"" << yytext;
+        cerr << "\" on line " << yylineno << endl;
+        exit(1);
+}
+
+int yyerror(char *s)
+{
+        return yyerror(string(s));
+}
