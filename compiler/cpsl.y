@@ -163,7 +163,7 @@ ArrayType:      ARRAY_SYM  L_BRACKET_SYM ConstExpression COLON_SYM ConstExpressi
                 ;
 
 IdentList:      IDENT_SYM 
-                | IDENT_SYM  IdentList
+                | IDENT_SYM COMMA_SYM IdentList
                 ;
 
 /* 3.1.4 Variable Declarations */
