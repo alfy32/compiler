@@ -1,7 +1,7 @@
 
 %{
 #include "heading.h"
-int yyerror(char *s);
+int yyerror(char*);
 int yylex(void);
 %}
 
@@ -55,9 +55,10 @@ int yylex(void);
         INT_CONST_SYM
         CHAR_CONST_SYM
         STR_CONST_SYM
-        CHAR_SYM
+        CHR_SYM
         FORWARD_SYM
         OF_SYM
+        TYPE_SYM
         
         ORD_SYM
         PRED_SYM
@@ -82,7 +83,7 @@ int yylex(void);
 
 %%
 
-Program:        SubCDecl SubTDecl SubVDecl SubPFDecl Block 
+Program:        SubCDecl SubTDecl SubVDecl SubPFDecl Block DOT_SYM
                 ;
 
 SubCDecl:       ConstantDecl
@@ -97,38 +98,34 @@ SubVDecl:       VarDecl
                 | /* nothing */
                 ;
 
-SubPFDecl:      SubSubPFDecl
-                | SubSubPFDecl SubPFDecl
-                ;
-
-SubSubPFDecl:   ProcedureDecl
-                | FunctionDecl
-                | /* nothing */
+SubPFDecl:      ProcedureDecl SubPFDecl
+                | FunctionDecl SubPFDecl
+                |
                 ;
 
 /* 3.1.1 Constant Declarations */
 
-ConstantDecl:   CONST_SYM  IDENT_SYM  EQUAL_SYM ConstExpression SEMICOLON_SYM ConstantDecl
-                | CONST_SYM  IDENT_SYM  EQUAL_SYM ConstExpression SEMICOLON_SYM 
+ConstantDecl:   CONST_SYM IDENT_SYM EQUAL_SYM ConstExpression SEMICOLON_SYM ConstantDecl
+                | CONST_SYM IDENT_SYM EQUAL_SYM ConstExpression SEMICOLON_SYM 
                 ;
 
 /* 3.1.2 Procedure and Function Declarations */
 
-ProcedureDecl:  PROCEDURE_SYM  IDENT_SYM  L_PAREN_SYM FormalParameters R_PAREN_SYM SEMICOLON_SYM FORWARD_SYM ;
-                | PROCEDURE_SYM  IDENT_SYM  L_PAREN_SYM FormalParameters R_PAREN_SYM SEMICOLON_SYM Body SEMICOLON_SYM
+ProcedureDecl:  PROCEDURE_SYM IDENT_SYM L_PAREN_SYM FormalParameters R_PAREN_SYM SEMICOLON_SYM FORWARD_SYM ;
+                | PROCEDURE_SYM IDENT_SYM L_PAREN_SYM FormalParameters R_PAREN_SYM SEMICOLON_SYM Body SEMICOLON_SYM
                 ;
 
-FunctionDecl:   FUNCTION_SYM  IDENT_SYM  L_PAREN_SYM FormalParameters R_PAREN_SYM COLON_SYM Type SEMICOLON_SYM FORWARD_SYM SEMICOLON_SYM
-                | FUNCTION_SYM  IDENT_SYM  L_PAREN_SYM FormalParameters R_PAREN_SYM COLON_SYM Type SEMICOLON_SYM Body SEMICOLON_SYM
+FunctionDecl:   FUNCTION_SYM IDENT_SYM L_PAREN_SYM FormalParameters R_PAREN_SYM COLON_SYM Type SEMICOLON_SYM FORWARD_SYM SEMICOLON_SYM
+                | FUNCTION_SYM IDENT_SYM L_PAREN_SYM FormalParameters R_PAREN_SYM COLON_SYM Type SEMICOLON_SYM Body SEMICOLON_SYM
                 ;
 
 FormalParameters: /* nothing */
-                | FormalParameter
-                | FormalParameter SEMICOLON_SYM FormalParameter
+                | SubVar IdentList COLON_SYM Type
+                | SubVar IdentList COLON_SYM Type SEMICOLON_SYM FormalParameters
                 ;
 
-FormalParameter: VAR_SYM IdentList COLON_SYM Type
-                | IdentList COLON_SYM Type
+SubVar:         VAR_SYM
+                | /* nothing */
                 ;
 
 Body:           SubCDecl SubTDecl SubVDecl Block
@@ -139,9 +136,11 @@ Block:          BEGIN_SYM StatementSequence END_SYM
 
 /* 3.1.3 Type Declarations */
 
-TypeDecl:       Type IDENT_SYM  EQUAL_SYM Type SEMICOLON_SYM
-                | Type IDENT_SYM  EQUAL_SYM Type SEMICOLON_SYM TypeDecl
+TypeDecl:       TYPE_SYM SubTypeDecl
                 ;
+
+SubTypeDecl:    IDENT_SYM EQUAL_SYM Type SEMICOLON_SYM
+                | IDENT_SYM EQUAL_SYM Type SEMICOLON_SYM SubTypeDecl
 
 Type:           SimpleType
                 | RecordType
@@ -154,12 +153,11 @@ SimpleType:     IDENT_SYM
 RecordType:     RECORD_SYM RecordItem END_SYM 
                 ;
 
-RecordItem:     IdentList COLON_SYM Type SEMICOLON_SYM
-                | IdentList COLON_SYM Type SEMICOLON_SYM RecordItem
+RecordItem:     IdentList COLON_SYM Type SEMICOLON_SYM RecordItem
                 | /* nothing */
                 ;
 
-ArrayType:      ARRAY_SYM  L_BRACKET_SYM ConstExpression COLON_SYM ConstExpression R_BRACKET_SYM OF_SYM Type
+ArrayType:      ARRAY_SYM L_BRACKET_SYM ConstExpression COLON_SYM ConstExpression R_BRACKET_SYM OF_SYM Type
                 ;
 
 IdentList:      IDENT_SYM 
@@ -178,7 +176,7 @@ SubVerDecl:     IdentList COLON_SYM Type SEMICOLON_SYM
 /* 3.2 CPSL Statements */
 
 StatementSequence: Statement
-                | Statement SEMICOLON_SYM Statement
+                | Statement SEMICOLON_SYM StatementSequence
                 ;
 
 Statement:      Assignemnt
@@ -200,8 +198,7 @@ Assignemnt:     LValue ASSIGNMENT_SYM Expression
 IfStatement:    IF_SYM Expression THEN_SYM StatementSequence SubElseIf SubElse END_SYM
                 ;
 
-SubElseIf:      ELSEIF_SYM  Expression THEN_SYM StatementSequence
-                | ELSEIF_SYM  Expression THEN_SYM StatementSequence SubElseIf
+SubElseIf:      ELSEIF_SYM Expression THEN_SYM StatementSequence SubElseIf
                 | /* nothing */
                 ;
 
@@ -209,27 +206,28 @@ SubElse:        ELSE_SYM StatementSequence
                 | /* nothing */
                 ;
 
-WhileStatement: WHILE_SYM  Expression DO_SYM  StatementSequence END_SYM 
+WhileStatement: WHILE_SYM Expression DO_SYM StatementSequence END_SYM 
                 ;
 
 RepeatStatement: REPEAT_SYM StatementSequence UNTIL_SYM Expression
                 ;
 
-ForStatement:   FOR_SYM  IDENT_SYM  ASSIGNMENT_SYM Expression TO_SYM Expression DO_SYM  StatementSequence END_SYM 
+ForStatement:   FOR_SYM IDENT_SYM ASSIGNMENT_SYM Expression TO_SYM Expression DO_SYM StatementSequence END_SYM 
+                | FOR_SYM IDENT_SYM ASSIGNMENT_SYM Expression DOWNTO_SYM Expression DO_SYM StatementSequence END_SYM 
                 ;
 
 StopStatement:  STOP_SYM
                 ;
 
 ReturnStatement: RETURN_SYM  
-                | RETURN_SYM  Expression
+                | RETURN_SYM Expression
                 ;
 
-ReadStatement:  READ_SYM  L_PAREN_SYM LValStuff R_PAREN_SYM
+ReadStatement:  READ_SYM L_PAREN_SYM LValueList R_PAREN_SYM
                 ;
 
-LValStuff:      LValue
-                | LValue COMMA_SYM LValStuff
+LValueList:      LValue
+                | LValue COMMA_SYM LValueList
                 ;
 
 WriteStatement: WRITE_SYM L_PAREN_SYM ExpressionList R_PAREN_SYM
@@ -239,16 +237,16 @@ ExpressionList: Expression
                 | Expression COMMA_SYM ExpressionList
                 ;
 
-ProcedureCall: IDENT_SYM  L_PAREN_SYM R_PAREN_SYM
-                | IDENT_SYM  L_PAREN_SYM ExpressionList R_PAREN_SYM
+ProcedureCall: IDENT_SYM L_PAREN_SYM R_PAREN_SYM
+                | IDENT_SYM L_PAREN_SYM ExpressionList R_PAREN_SYM
                 ;
 
-NullStatement:  /* nothing */
+NullStatement: 
                 ;
 
 /* 3.3 Expressions */
 
-Expression:      Expression OR_SYM Expression
+/*Expression:      Expression OR_SYM Expression
                 | Expression AND_SYM Expression
                 | Expression EQUAL_SYM Expression
                 | Expression NOT_EQUAL_SYM Expression
@@ -264,38 +262,113 @@ Expression:      Expression OR_SYM Expression
                 | TILDE_SYM Expression
                 | NEG_SYM Expression
                 | L_PAREN_SYM Expression R_PAREN_SYM
-                | IDENT_SYM  L_PAREN_SYM R_PAREN_SYM
-                | IDENT_SYM  L_PAREN_SYM ExpressionList R_PAREN_SYM
-                | CHAR_SYM L_PAREN_SYM Expression R_PAREN_SYM
-                | ORD_SYM  L_PAREN_SYM Expression R_PAREN_SYM
-                | PRED_SYM  L_PAREN_SYM Expression R_PAREN_SYM
+                | IDENT_SYM L_PAREN_SYM R_PAREN_SYM
+                | IDENT_SYM L_PAREN_SYM ExpressionList R_PAREN_SYM
+                | CHR_SYM L_PAREN_SYM Expression R_PAREN_SYM
+                | ORD_SYM L_PAREN_SYM Expression R_PAREN_SYM
+                | PRED_SYM L_PAREN_SYM Expression R_PAREN_SYM
+                | SUCC_SYM L_PAREN_SYM Expression R_PAREN_SYM
+                | LValue
+                | ConstExpression
+                ;*/
+
+Expression:     NEG_SYM Expression
+                | Expression2
+                ; 
+
+Expression2:    Expression2 MULTIPLY_SYM Expression2
+                | Expression2 DIVIDE_SYM Expression2
+                | Expression2 MOD_SYM Expression2
+                | Expression3
+                ;
+
+Expression3:    Expression3 ADD_SYM Expression3
+                | Expression3 SUBTRACT_SYM Expression3
+                | Expression4
+                ;
+
+Expression4:    Expression4 EQUAL_SYM Expression4
+                | Expression4 NOT_EQUAL_SYM Expression4
+                | Expression4 LT_SYM Expression4
+                | Expression4 LT_EQ_SYM Expression4
+                | Expression4 GT_SYM Expression4
+                | Expression4 GT_EQ_SYM Expression4
+                | Expression5
+                ;
+
+Expression5:    TILDE_SYM Expression5 
+                | Expression6
+                ;
+
+Expression6:    AND_SYM Expression6
+                | Expression7
+                ;
+
+Expression7:    OR_SYM Expression7
+                | Expression8
+                ;
+
+Expression8:    L_PAREN_SYM Expression8 R_PAREN_SYM
+                | Expression9
+                ;
+
+Expression9:    IDENT_SYM L_PAREN_SYM ExpressionList R_PAREN_SYM
+                | CHR_SYM L_PAREN_SYM Expression R_PAREN_SYM
+                | ORD_SYM L_PAREN_SYM Expression R_PAREN_SYM
+                | PRED_SYM L_PAREN_SYM Expression R_PAREN_SYM
                 | SUCC_SYM L_PAREN_SYM Expression R_PAREN_SYM
                 | LValue
                 | ConstExpression
                 ;
 
+
 LValue:         IDENT_SYM 
-                | IDENT_SYM  DOT_SYM IDENT_SYM 
-                | IDENT_SYM  L_BRACKET_SYM Expression R_BRACKET_SYM
+                /*| IDENT_SYM DOT_SYM IDENT_SYM */
+                | LValue DOT_SYM LValue /* CHECK */
+                | IDENT_SYM L_BRACKET_SYM Expression R_BRACKET_SYM
                 ;
 
-ConstExpression: ConstExpression OR_SYM ConstExpression
-                | ConstExpression AND_SYM ConstExpression
-                | ConstExpression EQUAL_SYM ConstExpression
-                | ConstExpression NOT_EQUAL_SYM ConstExpression
-                | ConstExpression LT_EQ_SYM ConstExpression
-                | ConstExpression GT_EQ_SYM ConstExpression
-                | ConstExpression LT_SYM ConstExpression
-                | ConstExpression GT_SYM ConstExpression
-                | ConstExpression ADD_SYM ConstExpression
-                | ConstExpression SUBTRACT_SYM ConstExpression
-                | ConstExpression MULTIPLY_SYM ConstExpression
-                | ConstExpression DIVIDE_SYM ConstExpression
-                | ConstExpression MOD_SYM ConstExpression
-                | TILDE_SYM ConstExpression
-                | NEG_SYM ConstExpression
-                | L_PAREN_SYM ConstExpression R_PAREN_SYM
-                | INT_CONST_SYM
+ConstExpression: NEG_SYM ConstExpression
+                | ConstExpr1
+                ; 
+
+ConstExpr1:     ConstExpr1 MULTIPLY_SYM ConstExpr1
+                | ConstExpr1 DIVIDE_SYM ConstExpr1
+                | ConstExpr1 MOD_SYM ConstExpr1
+                | ConstExpr2
+                ;
+
+ConstExpr2:     ConstExpr2 ADD_SYM ConstExpr2
+                | ConstExpr2 SUBTRACT_SYM ConstExpr2
+                | ConstExpr3
+                ;
+
+ConstExpr3:     ConstExpr3 EQUAL_SYM ConstExpr3
+                | ConstExpr3 NOT_EQUAL_SYM ConstExpr3
+                | ConstExpr3 LT_SYM ConstExpr3
+                | ConstExpr3 LT_EQ_SYM ConstExpr3
+                | ConstExpr3 GT_SYM ConstExpr3
+                | ConstExpr3 GT_EQ_SYM ConstExpr3
+                | ConstExpr4
+                ;
+
+ConstExpr4:     TILDE_SYM ConstExpr4 
+                | ConstExpr5
+                ;
+
+ConstExpr5:     AND_SYM ConstExpr5
+                | ConstExpr6
+                ;
+
+ConstExpr6:     OR_SYM ConstExpr6
+                | ConstExpr7
+                ;
+
+ConstExpr7:     L_PAREN_SYM ConstExpr7 R_PAREN_SYM
+                | ConstExpr8
+                ;
+
+ConstExpr8:     INT_CONST_SYM
                 | CHAR_CONST_SYM
                 | STR_CONST_SYM
                 | IDENT_SYM 

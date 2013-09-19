@@ -19,8 +19,8 @@ BEGIN|begin				{ printf( "Keyword: BEGIN (%s)\n", yytext); return BEGIN_SYM;}
 ELSEIF|elseif			{ printf( "Keyword: ELSEIF (%s)\n", yytext); return ELSEIF_SYM;}
 OF|of					{ printf( "Keyword: OF (%s)\n", yytext); return OF_SYM;}
 REPEAT|repeat			{ printf( "Keyword: REPEAT (%s)\n", yytext); return REPEAT_SYM;}
-TYPE|type				{ printf( "Keyword: TYPE (%s)\n", yytext); }/*return Type;} /* WHAT do I do here?*/
-CHR|chr					{ printf( "Keyword: CHR (%s)\n", yytext); return CHAR_SYM;}
+TYPE|type				{ printf( "Keyword: TYPE (%s)\n", yytext); return TYPE_SYM;}
+CHR|chr					{ printf( "Keyword: CHR (%s)\n", yytext); return CHR_SYM;}
 END|end					{ printf( "Keyword: END (%s)\n", yytext); return END_SYM;}
 ORD|ord					{ printf( "Keyword: ORD (%s)\n", yytext); return ORD_SYM;}
 RETURN|return			{ printf( "Keyword: RETURN (%s)\n", yytext); return RETURN_SYM;}
@@ -78,12 +78,13 @@ false					{ printf( "Identifier: false (%s)\n", yytext); return IDENT_SYM;}
 
 
 0[0-7]+					{ printf( "An Octal Number: (%s)\n", yytext); return INT_CONST_SYM;}
-0x[0-9a-fA-f]+			{ printf( "A Hex Number: (%s)\n", yytext); return INT_CONST_SYM;} /* Is this right? */
-[0-9]+					{ printf( "A Decimal Number: (%s)\n", yytext); return INT_CONST_SYM;} /* Is this right? */
+0x[0-9a-fA-f]+			{ printf( "A Hex Number: (%s)\n", yytext); return INT_CONST_SYM;} /* CHECK Is this right? */
+[0-9]+					{ printf( "A Decimal Number: (%s)\n", yytext); return INT_CONST_SYM;} /* CHECK Is this right? */
 
 
 '[ -~]'					{ printf( "A Character Constant: (%s)\n", yytext); return CHAR_CONST_SYM;}
-
+'\\n'|'\\r'|'\\b'		{ printf( "A Character Constant: (%s)\n", yytext); return CHAR_CONST_SYM;}
+'\\t'|'\\f'				{ printf( "A Character Constant: (%s)\n", yytext); return CHAR_CONST_SYM;}
 
 ["][ !#-~]*["]			{ printf( "A String Constant: (%s)\n", yytext); return STR_CONST_SYM;}
 
@@ -91,29 +92,28 @@ false					{ printf( "Identifier: false (%s)\n", yytext); return IDENT_SYM;}
 $.*						{ printf( "A Comment: (%s)\n", yytext);}
 
 
-[\n]+					{ printf ( "Line Number: %i\n", yyLineCount++);}
+[ \t]*					/* eat up whitespace */
 
-[ \t]+					/* eat up whitespace */
+[\n]					{ printf ( "End of line: %i\n", yylineno++);}
 
 
 <<EOF>>					{ printf( "This is the end!\n", yytext); return 0;}
 
 
-.						{ printf( "************UNRECOGNIZED CHARACTER: (%s)************\n", yytext ); }
+.						{ printf( "************UNRECOGNIZED CHARACTER: (%s)************\n", yytext );  yyerror("Scanner: Invalid Character.");}
 
 %%
 
 int yywrap() {
 	return 1;
 }
-/*
-int main( int argc, char **argv ) {
-	++argv, --argc;  /* skip over program name 
+
+/*int main( int argc, char **argv ) {
+	++argv, --argc;  
 	if ( argc > 0 )
 	     yyin = fopen( argv[0], "r" );
 	else
 	     yyin = stdin;
 
 	yylex();
-}
-*/
+}*/
