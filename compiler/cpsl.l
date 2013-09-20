@@ -1,7 +1,7 @@
 /* scanner for CPSL written by Alan Christensen */
 
 %{
-#include "heading.h"
+#include "cpsl.h"
 #include "cpsl.tab.h"
 
 int yyerror(char* s);

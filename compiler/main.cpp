@@ -1,5 +1,5 @@
 
-#include "heading.h"
+#include "cpsl.h"
 
 int yyparse();
 

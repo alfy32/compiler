@@ -2,7 +2,6 @@ $ Program to sort personnel data
 
 const
   TABLEN = 20;
-const
   NAMELEN = 24;
 
 type
@@ -99,7 +98,7 @@ procedure agesort();
 begin
   for m := persons downto 1 do
     for n:=1 to m-1 do
-      if exchange(table[n].name,table[n+1].name)
+      if exchange(table[n].age,table[n+1].age)
         then personswap(table[n],table[n+1]);
       end;
     end;

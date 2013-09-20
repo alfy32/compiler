@@ -1,6 +1,6 @@
 
 %{
-#include "heading.h"
+#include "cpsl.h"
 int yyerror(char*);
 int yylex(void);
 %}
@@ -71,7 +71,7 @@ int yylex(void);
         UNTIL_SYM
         VAR_SYM
         WRITE_SYM
-        DOWNTO_SYM /* this needs to be added to grammer */
+        DOWNTO_SYM 
 
 %right          NEG_SYM
 %left           MULTIPLY_SYM DIVIDE_SYM MOD_SYM
@@ -105,9 +105,11 @@ SubPFDecl:      ProcedureDecl SubPFDecl
 
 /* 3.1.1 Constant Declarations */
 
-ConstantDecl:   CONST_SYM IDENT_SYM EQUAL_SYM ConstExpression SEMICOLON_SYM ConstantDecl
-                | CONST_SYM IDENT_SYM EQUAL_SYM ConstExpression SEMICOLON_SYM 
+ConstantDecl:   CONST_SYM SubConstDecl
                 ;
+
+SubConstDecl:   IDENT_SYM EQUAL_SYM ConstExpression SEMICOLON_SYM 
+                | IDENT_SYM EQUAL_SYM ConstExpression SEMICOLON_SYM SubConstDecl
 
 /* 3.1.2 Procedure and Function Declarations */
 
@@ -246,7 +248,7 @@ NullStatement:
 
 /* 3.3 Expressions */
 
-/*Expression:      Expression OR_SYM Expression
+Expression:      Expression OR_SYM Expression
                 | Expression AND_SYM Expression
                 | Expression EQUAL_SYM Expression
                 | Expression NOT_EQUAL_SYM Expression
@@ -270,9 +272,11 @@ NullStatement:
                 | SUCC_SYM L_PAREN_SYM Expression R_PAREN_SYM
                 | LValue
                 | ConstExpression
-                ;*/
+                ;
 
-Expression:     NEG_SYM Expression
+
+
+/*Expression:     NEG_SYM Expression
                 | Expression2
                 ; 
 
@@ -319,22 +323,44 @@ Expression9:    IDENT_SYM L_PAREN_SYM ExpressionList R_PAREN_SYM
                 | SUCC_SYM L_PAREN_SYM Expression R_PAREN_SYM
                 | LValue
                 | ConstExpression
-                ;
+                ;*/
 
 
 LValue:         IDENT_SYM 
                 /*| IDENT_SYM DOT_SYM IDENT_SYM */
-                | LValue DOT_SYM LValue /* CHECK */
+                | LValue DOT_SYM LValue
                 | IDENT_SYM L_BRACKET_SYM Expression R_BRACKET_SYM
+
+ConstExpression: ConstExpression OR_SYM ConstExpression
+                | ConstExpression AND_SYM ConstExpression
+                | ConstExpression EQUAL_SYM ConstExpression
+                | ConstExpression NOT_EQUAL_SYM ConstExpression
+                | ConstExpression LT_EQ_SYM ConstExpression
+                | ConstExpression GT_EQ_SYM ConstExpression
+                | ConstExpression LT_SYM ConstExpression
+                | ConstExpression GT_SYM ConstExpression
+                | ConstExpression ADD_SYM ConstExpression
+                | ConstExpression SUBTRACT_SYM ConstExpression
+                | ConstExpression MULTIPLY_SYM ConstExpression
+                | ConstExpression DIVIDE_SYM ConstExpression
+                | ConstExpression MOD_SYM ConstExpression
+                | TILDE_SYM ConstExpression
+                | NEG_SYM ConstExpression
+                | L_PAREN_SYM ConstExpression R_PAREN_SYM
+                | INT_CONST_SYM
+                | CHAR_CONST_SYM
+                | STR_CONST_SYM
+                | IDENT_SYM
                 ;
 
-ConstExpression: NEG_SYM ConstExpression
+
+/*ConstExpression: NEG_SYM ConstExpression
                 | ConstExpr1
                 ; 
 
-ConstExpr1:     ConstExpr1 MULTIPLY_SYM ConstExpr1
-                | ConstExpr1 DIVIDE_SYM ConstExpr1
-                | ConstExpr1 MOD_SYM ConstExpr1
+ConstExpr1:     ConstExpression MULTIPLY_SYM ConstExpr1
+                | ConstExpression DIVIDE_SYM ConstExpr1
+                | ConstExpression MOD_SYM ConstExpr1
                 | ConstExpr2
                 ;
 
@@ -343,28 +369,28 @@ ConstExpr2:     ConstExpr2 ADD_SYM ConstExpr2
                 | ConstExpr3
                 ;
 
-ConstExpr3:     ConstExpr3 EQUAL_SYM ConstExpr3
-                | ConstExpr3 NOT_EQUAL_SYM ConstExpr3
-                | ConstExpr3 LT_SYM ConstExpr3
-                | ConstExpr3 LT_EQ_SYM ConstExpr3
-                | ConstExpr3 GT_SYM ConstExpr3
-                | ConstExpr3 GT_EQ_SYM ConstExpr3
+ConstExpr3:     ConstExpression EQUAL_SYM ConstExpr3
+                | ConstExpression NOT_EQUAL_SYM ConstExpr3
+                | ConstExpression LT_SYM ConstExpr3
+                | ConstExpression LT_EQ_SYM ConstExpr3
+                | ConstExpression GT_SYM ConstExpr3
+                | ConstExpression GT_EQ_SYM ConstExpr3
                 | ConstExpr4
                 ;
 
-ConstExpr4:     TILDE_SYM ConstExpr4 
+ConstExpr4:     TILDE_SYM ConstExpression 
                 | ConstExpr5
                 ;
 
-ConstExpr5:     AND_SYM ConstExpr5
+ConstExpr5:     AND_SYM ConstExpression
                 | ConstExpr6
                 ;
 
-ConstExpr6:     OR_SYM ConstExpr6
+ConstExpr6:     OR_SYM ConstExpression
                 | ConstExpr7
                 ;
 
-ConstExpr7:     L_PAREN_SYM ConstExpr7 R_PAREN_SYM
+ConstExpr7:     L_PAREN_SYM ConstExpression R_PAREN_SYM
                 | ConstExpr8
                 ;
 
@@ -372,7 +398,7 @@ ConstExpr8:     INT_CONST_SYM
                 | CHAR_CONST_SYM
                 | STR_CONST_SYM
                 | IDENT_SYM 
-                ;
+                ;*/
 
 %%
 
