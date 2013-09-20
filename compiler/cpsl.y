@@ -113,7 +113,7 @@ SubConstDecl:   IDENT_SYM EQUAL_SYM ConstExpression SEMICOLON_SYM
 
 /* 3.1.2 Procedure and Function Declarations */
 
-ProcedureDecl:  PROCEDURE_SYM IDENT_SYM L_PAREN_SYM FormalParameters R_PAREN_SYM SEMICOLON_SYM FORWARD_SYM ;
+ProcedureDecl:  PROCEDURE_SYM IDENT_SYM L_PAREN_SYM FormalParameters R_PAREN_SYM SEMICOLON_SYM FORWARD_SYM SEMICOLON_SYM
                 | PROCEDURE_SYM IDENT_SYM L_PAREN_SYM FormalParameters R_PAREN_SYM SEMICOLON_SYM Body SEMICOLON_SYM
                 ;
 
@@ -168,11 +168,11 @@ IdentList:      IDENT_SYM
 
 /* 3.1.4 Variable Declarations */
 
-VarDecl:        VAR_SYM SubVerDecl
+VarDecl:        VAR_SYM SubVarDecl
                 ;
 
-SubVerDecl:     IdentList COLON_SYM Type SEMICOLON_SYM
-                | IdentList COLON_SYM Type SEMICOLON_SYM SubVerDecl
+SubVarDecl:     IdentList COLON_SYM Type SEMICOLON_SYM
+                | IdentList COLON_SYM Type SEMICOLON_SYM SubVarDecl
                 ;
 
 /* 3.2 CPSL Statements */
@@ -274,8 +274,6 @@ Expression:      Expression OR_SYM Expression
                 | ConstExpression
                 ;
 
-
-
 /*Expression:     NEG_SYM Expression
                 | Expression2
                 ; 
@@ -327,9 +325,19 @@ Expression9:    IDENT_SYM L_PAREN_SYM ExpressionList R_PAREN_SYM
 
 
 LValue:         IDENT_SYM 
-                /*| IDENT_SYM DOT_SYM IDENT_SYM */
-                | LValue DOT_SYM LValue
-                | IDENT_SYM L_BRACKET_SYM Expression R_BRACKET_SYM
+                | IDENT_SYM SubLValueStar
+              /*  | IDENT_SYM DOT_SYM IDENT_SYM */
+                /*| LValue DOT_SYM LValue*/
+                /*| IDENT_SYM L_BRACKET_SYM Expression R_BRACKET_SYM*/
+                ;
+
+SubLValueStar:  SubLValue
+                | SubLValue SubLValueStar
+                ;
+
+SubLValue:      DOT_SYM IDENT_SYM
+                | L_BRACKET_SYM Expression R_BRACKET_SYM
+                ;
 
 ConstExpression: ConstExpression OR_SYM ConstExpression
                 | ConstExpression AND_SYM ConstExpression
