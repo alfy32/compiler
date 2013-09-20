@@ -248,7 +248,7 @@ NullStatement:
 
 /* 3.3 Expressions */
 
-Expression:      Expression OR_SYM Expression
+Expression:     Expression OR_SYM Expression
                 | Expression AND_SYM Expression
                 | Expression EQUAL_SYM Expression
                 | Expression NOT_EQUAL_SYM Expression
@@ -271,7 +271,10 @@ Expression:      Expression OR_SYM Expression
                 | PRED_SYM L_PAREN_SYM Expression R_PAREN_SYM
                 | SUCC_SYM L_PAREN_SYM Expression R_PAREN_SYM
                 | LValue
-                | ConstExpression
+                /*| ConstExpression*/
+                | INT_CONST_SYM   /* I added this to make it work. Figure out how to fix better later. */
+                | CHAR_CONST_SYM
+                | STR_CONST_SYM
                 ;
 
 /*Expression:     NEG_SYM Expression
