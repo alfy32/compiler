@@ -29,6 +29,11 @@ clean:
 
 	rm -f cpsl
 
+	rm -f *.tar
+
+tar: clean
+	tar -cvzf alanCompiler.tar ../compiler/*
+
 lex: cpsl.l
 	flex -f cpsl.l
 	g++ lex.yy.c -o lex
