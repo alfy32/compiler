@@ -4,7 +4,7 @@
 #include "cpsl.h"
 #include "cpsl.tab.h"
 
-int yyerror(char* s);
+int yyerror(const char* s);
 int yyLineCount = 1;
 %}
 

@@ -1,7 +1,7 @@
 
 %{
 #include "cpsl.h"
-int yyerror(char*);
+int yyerror(const char*);
 int yylex(void);
 %}
 
@@ -423,7 +423,7 @@ int yyerror(string s)
         exit(1);
 }
 
-int yyerror(char *s)
+int yyerror(const char *s)
 {
         return yyerror(string(s));
 }
