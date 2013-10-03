@@ -15,6 +15,9 @@ bison.o: bison.c
 bison.c: cpsl.y
 	bison -d -v cpsl.y
 
+symbol: Symbol.hpp Symbol.cpp
+	g++ -c Symbol.cpp -o symbol.o
+
 main.o: main.cpp
 	g++ -c main.cpp -o main.o
 
@@ -28,6 +31,8 @@ clean:
 	rm -f cpsl.output
 
 	rm -f cpsl
+
+	rm -f symbol
 
 	rm -f *.tar
 

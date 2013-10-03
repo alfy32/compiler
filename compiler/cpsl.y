@@ -1,8 +1,12 @@
 
 %{
+
 #include "cpsl.h"
 int yyerror(const char*);
 int yylex(void);
+
+SymbolTab symbolTab;
+
 %}
 
 %union {
@@ -108,22 +112,22 @@ SubPFDecl:      ProcedureDecl SubPFDecl
 ConstantDecl:   CONST_SYM SubConstDecl
                 ;
 
-SubConstDecl:   IDENT_SYM EQUAL_SYM ConstExpression SEMICOLON_SYM 
-                | IDENT_SYM EQUAL_SYM ConstExpression SEMICOLON_SYM SubConstDecl
+SubConstDecl:   IDENT_SYM EQUAL_SYM ConstExpression SEMICOLON_SYM                   { SymbolTab::addConst($1,$3); }
+                | IDENT_SYM EQUAL_SYM ConstExpression SEMICOLON_SYM SubConstDecl    { SymbolTab::addConst($1,$3); }
 
 /* 3.1.2 Procedure and Function Declarations */
 
-ProcedureDecl:  PROCEDURE_SYM IDENT_SYM L_PAREN_SYM FormalParameters R_PAREN_SYM SEMICOLON_SYM FORWARD_SYM SEMICOLON_SYM
-                | PROCEDURE_SYM IDENT_SYM L_PAREN_SYM FormalParameters R_PAREN_SYM SEMICOLON_SYM Body SEMICOLON_SYM
+ProcedureDecl:  PROCEDURE_SYM IDENT_SYM L_PAREN_SYM FormalParameters R_PAREN_SYM SEMICOLON_SYM FORWARD_SYM SEMICOLON_SYM    { SymbolTab::addFuncProc($2,$4);}
+                | PROCEDURE_SYM IDENT_SYM L_PAREN_SYM FormalParameters R_PAREN_SYM SEMICOLON_SYM Body SEMICOLON_SYM         { SymbolTab::addFuncProc($2,$4);}
                 ;
 
-FunctionDecl:   FUNCTION_SYM IDENT_SYM L_PAREN_SYM FormalParameters R_PAREN_SYM COLON_SYM Type SEMICOLON_SYM FORWARD_SYM SEMICOLON_SYM
-                | FUNCTION_SYM IDENT_SYM L_PAREN_SYM FormalParameters R_PAREN_SYM COLON_SYM Type SEMICOLON_SYM Body SEMICOLON_SYM
+FunctionDecl:   FUNCTION_SYM IDENT_SYM L_PAREN_SYM FormalParameters R_PAREN_SYM COLON_SYM Type SEMICOLON_SYM FORWARD_SYM SEMICOLON_SYM  { SymbolTab::addFuncProc($2,$4);}
+                | FUNCTION_SYM IDENT_SYM L_PAREN_SYM FormalParameters R_PAREN_SYM COLON_SYM Type SEMICOLON_SYM Body SEMICOLON_SYM       { SymbolTab::addFuncProc($2,$4);}
                 ;
 
 FormalParameters: /* nothing */
-                | SubVar IdentList COLON_SYM Type
-                | SubVar IdentList COLON_SYM Type SEMICOLON_SYM FormalParameters
+                | SubVar IdentList COLON_SYM Type { $$ = SymbolTab::makeFormalParams($2, $4); }
+                | SubVar IdentList COLON_SYM Type SEMICOLON_SYM FormalParameters { $$ = SymbolTab::makeFormalParams($2, $4, $6); }
                 ;
 
 SubVar:         VAR_SYM
@@ -141,21 +145,21 @@ Block:          BEGIN_SYM StatementSequence END_SYM
 TypeDecl:       TYPE_SYM SubTypeDecl
                 ;
 
-SubTypeDecl:    IDENT_SYM EQUAL_SYM Type SEMICOLON_SYM
-                | IDENT_SYM EQUAL_SYM Type SEMICOLON_SYM SubTypeDecl
+SubTypeDecl:    IDENT_SYM EQUAL_SYM Type SEMICOLON_SYM { SymbolTab::addType($3, $1); }
+                | IDENT_SYM EQUAL_SYM Type SEMICOLON_SYM SubTypeDecl { SymbolTab::addType($3, $1); }
 
-Type:           SimpleType
-                | RecordType
-                | ArrayType
+Type:           SimpleType      { $$ = $1; }
+                | RecordType    { $$ = $1; }
+                | ArrayType     { $$ = $1; }
                 ;
 
-SimpleType:     IDENT_SYM 
+SimpleType:     IDENT_SYM       { $$ = $1; }
                 ;
 
-RecordType:     RECORD_SYM RecordItem END_SYM 
+RecordType:     RECORD_SYM RecordItem END_SYM   { $$ = SymbolTab::makeRecordType($2); }
                 ;
 
-RecordItem:     IdentList COLON_SYM Type SEMICOLON_SYM RecordItem
+RecordItem:     IdentList COLON_SYM Type SEMICOLON_SYM RecordItem { $$ = SymbolTab::makeRecordItem($1, $3, $5);}
                 | /* nothing */
                 ;
 
