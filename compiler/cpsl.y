@@ -163,11 +163,11 @@ RecordItem:     IdentList COLON_SYM Type SEMICOLON_SYM RecordItem { $$ = SymbolT
                 | /* nothing */
                 ;
 
-ArrayType:      ARRAY_SYM L_BRACKET_SYM ConstExpression COLON_SYM ConstExpression R_BRACKET_SYM OF_SYM Type
+ArrayType:      ARRAY_SYM L_BRACKET_SYM ConstExpression COLON_SYM ConstExpression R_BRACKET_SYM OF_SYM Type { $$ = SymbolTab::makeArrayType($3,$5,$8); }
                 ;
 
-IdentList:      IDENT_SYM 
-                | IDENT_SYM COMMA_SYM IdentList
+IdentList:      IDENT_SYM                           { $$ = SymbolTab::makeIdentList($1); }
+                | IDENT_SYM COMMA_SYM IdentList     { $$ = SymbolTab::makeIdentList($1, $3); }
                 ;
 
 /* 3.1.4 Variable Declarations */

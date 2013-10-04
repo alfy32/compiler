@@ -68,6 +68,15 @@ public:
 
 	// type makeArrayType(constExpr, constExpr, type)
 
+	// identList makeIdentList(name)
+	// identList makeIdentList(name, identList)
+
+	// void addVarList(varList)
+	// varList makeVarList(identList, type) 
+	// varList makeVarList(identList, type, varList) 
+
+	// void updateVar(name, value)
+
 };
 
 #endif
