@@ -7,102 +7,113 @@
 int yyerror(const char* s);
 int yyLineCount = 1;
 
-void keyword(std::string word, std::string text);
+void keyword(std::string word);
+void identifier(std::string ident);
+void oper();
+void octal();
+void hex();
+void decimal();
+void charConst();
+void strConst();
+void comment();
+void endOfLine();
+void endOfFile();
+void unrecognized();
 %}
 
 %%
 	
-ARRAY|array				{ keyword("ARRAY", yytext); 	return ARRAY_SYM;}
-ELSE|else				{ keyword("ELSE", yytext); 		return ELSE_SYM;}
-IF|if					{ keyword("IF", yytext); 		return IF_SYM;}
-RECORD|record			{ keyword("RECORD", yytext); 	return RECORD_SYM;}
-TO|to					{ keyword("TO", yytext); 		return TO_SYM;}
-BEGIN|begin				{ keyword("BEGIN", yytext); 	return BEGIN_SYM;}
-ELSEIF|elseif			{ keyword("ELSEIF", yytext); 	return ELSEIF_SYM;}
-OF|of					{ keyword("OF", yytext); 		return OF_SYM;}
-REPEAT|repeat			{ keyword("REPEAT", yytext); 	return REPEAT_SYM;}
-TYPE|type				{ keyword("TYPE", yytext); 		return TYPE_SYM;}
-CHR|chr					{ keyword("CHR", yytext); 		return CHR_SYM;}
-END|end					{ keyword("END", yytext); 		return END_SYM;}
-ORD|ord					{ keyword("ORD", yytext);       return ORD_SYM;}
-RETURN|return			{ keyword("RETURN", yytext);    return RETURN_SYM;}
-UNTIL|until				{ keyword("UNTIL", yytext);     return UNTIL_SYM;}
-CONST|const				{ keyword("CONST", yytext);     return CONST_SYM;}
-FOR|for					{ keyword("FOR", yytext);       return FOR_SYM;}
-PRED|pred				{ keyword("PRED", yytext);      return PRED_SYM;}
-STOP|stop				{ keyword("STOP", yytext);      return STOP_SYM;}
-VAR|var					{ keyword("VAR", yytext);       return VAR_SYM;}
-DO|do					{ keyword("DO", yytext);        return DO_SYM;}
-FORWARD|forward			{ keyword("FORWARD", yytext);   return FORWARD_SYM;}
-PROCEDURE|procedure		{ keyword("PROCEDURE", yytext); return PROCEDURE_SYM;}
-SUCC|succ				{ keyword("SUCC", yytext);      return SUCC_SYM;}
-WHILE|while				{ keyword("WHILE", yytext);     return WHILE_SYM;}
-DOWNTO|downto			{ keyword("DOWNTO", yytext);    return DOWNTO_SYM;}
-FUNCTION|function		{ keyword("FUNCTION", yytext);  return FUNCTION_SYM;}
-READ|read				{ keyword("READ", yytext);      return READ_SYM;}
-THEN|then				{ keyword("THEN", yytext);      return THEN_SYM;}
-WRITE|write				{ keyword("WRITE", yytext);     return WRITE_SYM;}
+ARRAY|array				{ keyword("ARRAY"); 	return ARRAY_SYM;}
+ELSE|else				{ keyword("ELSE"); 		return ELSE_SYM;}
+IF|if					{ keyword("IF"); 		return IF_SYM;}
+RECORD|record			{ keyword("RECORD"); 	return RECORD_SYM;}
+TO|to					{ keyword("TO"); 		return TO_SYM;}
+BEGIN|begin				{ keyword("BEGIN"); 	return BEGIN_SYM;}
+ELSEIF|elseif			{ keyword("ELSEIF"); 	return ELSEIF_SYM;}
+OF|of					{ keyword("OF"); 		return OF_SYM;}
+REPEAT|repeat			{ keyword("REPEAT"); 	return REPEAT_SYM;}
+TYPE|type				{ keyword("TYPE"); 		return TYPE_SYM;}
+CHR|chr					{ keyword("CHR"); 		return CHR_SYM;}
+END|end					{ keyword("END"); 		return END_SYM;}
+ORD|ord					{ keyword("ORD");       return ORD_SYM;}
+RETURN|return			{ keyword("RETURN");    return RETURN_SYM;}
+UNTIL|until				{ keyword("UNTIL");     return UNTIL_SYM;}
+CONST|const				{ keyword("CONST");     return CONST_SYM;}
+FOR|for					{ keyword("FOR");       return FOR_SYM;}
+PRED|pred				{ keyword("PRED");      return PRED_SYM;}
+STOP|stop				{ keyword("STOP");      return STOP_SYM;}
+VAR|var					{ keyword("VAR");       return VAR_SYM;}
+DO|do					{ keyword("DO");        return DO_SYM;}
+FORWARD|forward			{ keyword("FORWARD");   return FORWARD_SYM;}
+PROCEDURE|procedure		{ keyword("PROCEDURE"); return PROCEDURE_SYM;}
+SUCC|succ				{ keyword("SUCC");      return SUCC_SYM;}
+WHILE|while				{ keyword("WHILE");     return WHILE_SYM;}
+DOWNTO|downto			{ keyword("DOWNTO");    return DOWNTO_SYM;}
+FUNCTION|function		{ keyword("FUNCTION");  return FUNCTION_SYM;}
+READ|read				{ keyword("READ");      return READ_SYM;}
+THEN|then				{ keyword("THEN");      return THEN_SYM;}
+WRITE|write				{ keyword("WRITE");     return WRITE_SYM;}
 
 
-integer					{ yylval.     printf( "Identifier: integer (%s)\n", yytext); return IDENT_SYM;}
-char					{ printf( "Identifier: char (%s)\n", yytext); return IDENT_SYM;}
-boolean					{ printf( "Identifier: boolean (%s)\n", yytext); return IDENT_SYM;}
-string	 				{ printf( "Identifier: string (%s)\n", yytext); return IDENT_SYM;}
-true					{ printf( "Identifier: true (%s)\n", yytext); return IDENT_SYM;}
-false					{ printf( "Identifier: false (%s)\n", yytext); return IDENT_SYM;}
+integer					{ identifier("integer");return IDENT_SYM;}
+char					{ identifier("char"); 	return IDENT_SYM;}
+boolean					{ identifier("boolean");return IDENT_SYM;}
+string	 				{ identifier("string"); return IDENT_SYM;}
+true					{ identifier("true"); 	return IDENT_SYM;}
+false					{ identifier("false"); 	return IDENT_SYM;}
 
-[a-zA-Z][a-zA-Z0-9_]*	{ printf( "Identifier: (%s)\n", yytext); return IDENT_SYM;}
-
-
-"+"						{ printf( "An operator: %s\n", yytext ); return ADD_SYM;}
-"-"						{ printf( "An operator: %s\n", yytext ); return SUBTRACT_SYM;}
-"*"						{ printf( "An operator: %s\n", yytext ); return MULTIPLY_SYM;}
-"/"						{ printf( "An operator: %s\n", yytext ); return DIVIDE_SYM;}
-"&"						{ printf( "An operator: %s\n", yytext ); return AND_SYM;}
-"|"						{ printf( "An operator: %s\n", yytext ); return OR_SYM;}
-"~"						{ printf( "An operator: %s\n", yytext ); return TILDE_SYM;}
-"="						{ printf( "An operator: %s\n", yytext ); return EQUAL_SYM;}
-"<>"					{ printf( "An operator: %s\n", yytext ); return NOT_EQUAL_SYM;}
-"<"						{ printf( "An operator: %s\n", yytext ); return LT_SYM;}
-"<="					{ printf( "An operator: %s\n", yytext ); return LT_EQ_SYM;}
-">"						{ printf( "An operator: %s\n", yytext ); return GT_SYM;}
-">="					{ printf( "An operator: %s\n", yytext ); return GT_EQ_SYM;}
-"."						{ printf( "An operator: %s\n", yytext ); return DOT_SYM;}
-","						{ printf( "An operator: %s\n", yytext ); return COMMA_SYM;}
-":"						{ printf( "An operator: %s\n", yytext ); return COLON_SYM;}
-";"						{ printf( "An operator: %s\n", yytext ); return SEMICOLON_SYM;}
-"("						{ printf( "An operator: %s\n", yytext ); return L_PAREN_SYM;}
-")"						{ printf( "An operator: %s\n", yytext ); return R_PAREN_SYM;}
-"["						{ printf( "An operator: %s\n", yytext ); return L_BRACKET_SYM;}
-"]"						{ printf( "An operator: %s\n", yytext ); return R_BRACKET_SYM;}
-":="					{ printf( "An operator: %s\n", yytext ); return ASSIGNMENT_SYM;}
-"%"						{ printf( "An operator: %s\n", yytext ); return MOD_SYM;}
+[a-zA-Z][a-zA-Z0-9_]*	{ identifier("variable"); return IDENT_SYM;}
 
 
-0[0-7]+					{ printf( "An Octal Number: (%s)\n", yytext); return INT_CONST_SYM;}
-0x[0-9a-fA-f]+			{ printf( "A Hex Number: (%s)\n", yytext); return INT_CONST_SYM;} /* CHECK Is this right? */
-[0-9]+					{ printf( "A Decimal Number: (%s)\n", yytext); return INT_CONST_SYM;} /* CHECK Is this right? */
+"+"						{ oper(); return ADD_SYM;}
+"-"						{ oper(); return SUBTRACT_SYM;}
+"*"						{ oper(); return MULTIPLY_SYM;}
+"/"						{ oper(); return DIVIDE_SYM;}
+"&"						{ oper(); return AND_SYM;}
+"|"						{ oper(); return OR_SYM;}
+"~"						{ oper(); return TILDE_SYM;}
+"="						{ oper(); return EQUAL_SYM;}
+"<>"					{ oper(); return NOT_EQUAL_SYM;}
+"<"						{ oper(); return LT_SYM;}
+"<="					{ oper(); return LT_EQ_SYM;}
+">"						{ oper(); return GT_SYM;}
+">="					{ oper(); return GT_EQ_SYM;}
+"."						{ oper(); return DOT_SYM;}
+","						{ oper(); return COMMA_SYM;}
+":"						{ oper(); return COLON_SYM;}
+";"						{ oper(); return SEMICOLON_SYM;}
+"("						{ oper(); return L_PAREN_SYM;}
+")"						{ oper(); return R_PAREN_SYM;}
+"["						{ oper(); return L_BRACKET_SYM;}
+"]"						{ oper(); return R_BRACKET_SYM;}
+":="					{ oper(); return ASSIGNMENT_SYM;}
+"%"						{ oper(); return MOD_SYM;}
 
 
-'[ -~]'					{ printf( "A Character Constant: (%s)\n", yytext); return CHAR_CONST_SYM;}
-'\\n'|'\\r'|'\\b'		{ printf( "A Character Constant: (%s)\n", yytext); return CHAR_CONST_SYM;}
-'\\t'|'\\f'				{ printf( "A Character Constant: (%s)\n", yytext); return CHAR_CONST_SYM;}
-
-["][ !#-~]*["]			{ printf( "A String Constant: (%s)\n", yytext); return STR_CONST_SYM;}
+0[0-7]+					{ octal(); 		return INT_CONST_SYM;}
+0x[0-9a-fA-f]+			{ hex(); 		return INT_CONST_SYM;} 
+[0-9]+					{ decimal(); 	return INT_CONST_SYM;} 
 
 
-$.*						{ printf( "A Comment: (%s)\n", yytext);}
+'[ -~]'					{ charConst(); 	return CHAR_CONST_SYM;}
+'\\n'|'\\r'|'\\b'		{ charConst(); 	return CHAR_CONST_SYM;}
+'\\t'|'\\f'				{ charConst(); 	return CHAR_CONST_SYM;}
+
+["][ !#-~]*["]			{ strConst(); 	return STR_CONST_SYM;}
+
+
+$.*						{ comment(); }
 
 
 [ \t]*					/* eat up whitespace */
 
-[\n]					{ printf ( "End of line: %i\n", yylineno++);}
+[\n]					{ endOfLine(); }
 
 
-<<EOF>>					{ printf( "This is the end!\n", yytext); return 0;}
+<<EOF>>					{ endOfFile(); 	return 0;}
 
 
-.						{ printf( "************UNRECOGNIZED CHARACTER: (%s)************\n", yytext );  yyerror("Scanner: Invalid Character.");}
+.						{ unrecognized(); }
 
 %%
 
@@ -110,7 +121,7 @@ int yywrap() {
 	return 1;
 }
 
-/*int main( int argc, char **argv ) {
+int main( int argc, char **argv ) {
 	++argv, --argc;  
 	if ( argc > 0 )
 	     yyin = fopen( argv[0], "r" );
@@ -118,8 +129,61 @@ int yywrap() {
 	     yyin = stdin;
 
 	yylex();
-}*/
+}
 
-void keyword(std::string word, std::string text) {
-	std::cout << "Keyword: " << word << " (" << text << ")" << std::endl;
+void keyword(std::string word) {
+	std::cout << "Keyword: " << word << " (" << yytext << ")" << std::endl;
+}
+
+void identifier(std::string ident) {
+	std::cout << "Identifier: " << ident << " (" << yytext << ")" << std::endl;
+}
+
+void oper() {
+	std::cout << "Operator: " << yytext << std::endl;
+}
+
+void octal() {
+	std::cout << "Octal Number: " << yytext << std::endl;
+
+	yylval.int_val = std::stoi(yytext, nullptr, 8);
+}
+void hex() {
+	std::cout << "Hex Number: " << yytext << std::endl;
+
+	yylval.int_val = std::stoi(yytext, nullptr, 16);
+}
+void decimal() {
+	std::cout << "Decimal Number: " << yytext << std::endl;
+
+	yylval.int_val = std::stoi(yytext, nullptr, 10);
+}
+
+void charConst() {
+	std::cout << "Character Constant: " << yytext << std::endl;
+
+	yylval.char_val = yytext[1];
+}
+void strConst() {
+	std::cout << "String Constant: " << yytext << std::endl;
+
+	yylval.str_val = new std::string(yytext);
+}
+
+void comment() {
+	std::cout << "Comment: " << yytext << std::endl; 
+}
+
+void endOfLine() {
+	std::cout << "End of line: " << yylineno++ << std::endl;
+}
+
+void endOfFile() {
+	std::cout << "This is the end!\n";
+}
+
+void unrecognized() {
+	std::cout << "************UNRECOGNIZED CHARACTER: " << yytext << "************\n";
+
+	yyerror("Scanner: Invalid Character.");
 }

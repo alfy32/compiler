@@ -7,9 +7,25 @@
 #include "Symbol.hpp"
 
 class SymbolTable {
+/* Singleton Stuff */
+private:
+	static std::shared_ptr<SymbolTable> symbolTableInstance;
+
+public:
+	static std::shared_ptr<SymbolTable> getInstance() {
+		if(!symbolTableInstance){
+			symbolTableInstance = std::make_shared<SymbolTable>();
+		}
+	}
+/* End Singleton Stuff */
+
+private:	
 	std::map<std::string, std::shared_ptr<Symbol> > table;
 
-	std::shared_ptr<Symbol> lookup(std::string);
+public:
+	std::shared_ptr<Symbol> lookup(std::string) {
+		
+	}
 	void add(std::shared_ptr<Symbol>);
 };
 

@@ -10,72 +10,51 @@ SymbolTab symbolTab;
 %}
 
 %union {
-        int int_val;
-        string* op_val;
+    int int_val;
+    char char_val;
+    std::string* str_val;
+
+    int op;
+    int token;
+    int keyword;
+
+    std::string* indent;
+
+    Symbol* symbol;
 }
 
 %start Program
  
-%token  NEG_SYM
-        MULTIPLY_SYM
-        DIVIDE_SYM
-        MOD_SYM
-        SUBTRACT_SYM
-        ADD_SYM
-        EQUAL_SYM
-        NOT_EQUAL_SYM
-        LT_SYM
-        LT_EQ_SYM
-        GT_SYM
-        GT_EQ_SYM
-        TILDE_SYM
-        AND_SYM
-        OR_SYM
-        COLON_SYM
-        SEMICOLON_SYM
-        L_PAREN_SYM
-        R_PAREN_SYM
-        L_BRACKET_SYM
-        R_BRACKET_SYM
-        ASSIGNMENT_SYM
-        COMMA_SYM
-        DOT_SYM
+%token <op> NEG_SYM
+%token <op> MULTIPLY_SYM DIVIDE_SYM MOD_SYM
+%token <op> ADD_SYM SUBTRACT_SYM
+%token <op> EQUAL_SYM   NOT_EQUAL_SYM 
+            LT_SYM      LT_EQ_SYM
+            GT_SYM      GT_EQ_SYM
+%token <op> TILDE_SYM
+%token <op> AND_SYM
+%token <op> OR_SYM
 
-        CONST_SYM
-        PROCEDURE_SYM
-        FUNCTION_SYM
-        IDENT_SYM
-        BEGIN_SYM
-        END_SYM
-        IF_SYM
-        ELSE_SYM
-        ELSEIF_SYM
-        WHILE_SYM
-        DO_SYM
-        FOR_SYM
-        RETURN_SYM
-        READ_SYM 
-        ARRAY_SYM
-        INT_CONST_SYM
-        CHAR_CONST_SYM
-        STR_CONST_SYM
-        CHR_SYM
-        FORWARD_SYM
-        OF_SYM
-        TYPE_SYM
-        
-        ORD_SYM
-        PRED_SYM
-        RECORD_SYM
-        REPEAT_SYM
-        STOP_SYM
-        SUCC_SYM
-        THEN_SYM
-        TO_SYM
-        UNTIL_SYM
-        VAR_SYM
-        WRITE_SYM
-        DOWNTO_SYM 
+%token <token>      COLON_SYM
+                    SEMICOLON_SYM
+                    L_PAREN_SYM
+                    R_PAREN_SYM
+                    L_BRACKET_SYM
+                    R_BRACKET_SYM
+                    ASSIGNMENT_SYM
+                    COMMA_SYM
+                    DOT_SYM
+
+%token <keyword>    ARRAY_SYM   BEGIN_SYM   CHR_SYM     CONST_SYM   DO_SYM          DOWNTO_SYM
+                    ELSE_SYM    ELSEIF_SYM  END_SYM     FOR_SYM     FORWARD_SYM     FUNCTION_SYM
+                    IF_SYM      OF_SYM      ORD_SYM     PRED_SYM    PROCEDURE_SYM   READ_SYM
+                    RECORD_SYM  REPEAT_SYM  RETURN_SYM  STOP_SYM    SUCC_SYM        THEN_SYM
+                    TO_SYM      TYPE_SYM    UNTIL_SYM   VAR_SYM     WHILE_SYM       WRITE_SYM
+
+%token <indent>     IDENT_SYM
+%token <int_val>    INT_CONST_SYM
+%token <char_val>   CHAR_CONST_SYM
+%token <str_val>    STR_CONST_SYM
 
 %right          NEG_SYM
 %left           MULTIPLY_SYM DIVIDE_SYM MOD_SYM
@@ -112,22 +91,22 @@ SubPFDecl:      ProcedureDecl SubPFDecl
 ConstantDecl:   CONST_SYM SubConstDecl
                 ;
 
-SubConstDecl:   IDENT_SYM EQUAL_SYM ConstExpression SEMICOLON_SYM                   { SymbolTab::addConst($1,$3); }
-                | IDENT_SYM EQUAL_SYM ConstExpression SEMICOLON_SYM SubConstDecl    { SymbolTab::addConst($1,$3); }
+SubConstDecl:   IDENT_SYM EQUAL_SYM ConstExpression SEMICOLON_SYM
+                | IDENT_SYM EQUAL_SYM ConstExpression SEMICOLON_SYM SubConstDecl
 
 /* 3.1.2 Procedure and Function Declarations */
 
-ProcedureDecl:  PROCEDURE_SYM IDENT_SYM L_PAREN_SYM FormalParameters R_PAREN_SYM SEMICOLON_SYM FORWARD_SYM SEMICOLON_SYM    { SymbolTab::addFuncProc($2,$4);}
-                | PROCEDURE_SYM IDENT_SYM L_PAREN_SYM FormalParameters R_PAREN_SYM SEMICOLON_SYM Body SEMICOLON_SYM         { SymbolTab::addFuncProc($2,$4);}
+ProcedureDecl:  PROCEDURE_SYM IDENT_SYM L_PAREN_SYM FormalParameters R_PAREN_SYM SEMICOLON_SYM FORWARD_SYM SEMICOLON_SYM   // { SymbolTab::add(std::make_shared<Func>($2,$4,true)); }
+                | PROCEDURE_SYM IDENT_SYM L_PAREN_SYM FormalParameters R_PAREN_SYM SEMICOLON_SYM Body SEMICOLON_SYM        // { SymbolTab::add(std::make_shared<Func>($2,$4,true)); }
                 ;
 
-FunctionDecl:   FUNCTION_SYM IDENT_SYM L_PAREN_SYM FormalParameters R_PAREN_SYM COLON_SYM Type SEMICOLON_SYM FORWARD_SYM SEMICOLON_SYM  { SymbolTab::addFuncProc($2,$4);}
-                | FUNCTION_SYM IDENT_SYM L_PAREN_SYM FormalParameters R_PAREN_SYM COLON_SYM Type SEMICOLON_SYM Body SEMICOLON_SYM       { SymbolTab::addFuncProc($2,$4);}
+FunctionDecl:   FUNCTION_SYM IDENT_SYM L_PAREN_SYM FormalParameters R_PAREN_SYM COLON_SYM Type SEMICOLON_SYM FORWARD_SYM SEMICOLON_SYM // { SymbolTab::add(std::make_shared<Func>($2,$4);}
+                | FUNCTION_SYM IDENT_SYM L_PAREN_SYM FormalParameters R_PAREN_SYM COLON_SYM Type SEMICOLON_SYM Body SEMICOLON_SYM      // { SymbolTab::addFuncProc($2,$4);}
                 ;
 
 FormalParameters: /* nothing */
-                | SubVar IdentList COLON_SYM Type { $$ = SymbolTab::makeFormalParams($2, $4); }
-                | SubVar IdentList COLON_SYM Type SEMICOLON_SYM FormalParameters { $$ = SymbolTab::makeFormalParams($2, $4, $6); }
+                | SubVar IdentList COLON_SYM Type //{ $$ = SymbolTab::makeFormalParams($2, $4); }
+                | SubVar IdentList COLON_SYM Type SEMICOLON_SYM FormalParameters //{ $$ = SymbolTab::makeFormalParams($2, $4, $6); }
                 ;
 
 SubVar:         VAR_SYM
@@ -145,29 +124,29 @@ Block:          BEGIN_SYM StatementSequence END_SYM
 TypeDecl:       TYPE_SYM SubTypeDecl
                 ;
 
-SubTypeDecl:    IDENT_SYM EQUAL_SYM Type SEMICOLON_SYM { SymbolTab::addType($3, $1); }
-                | IDENT_SYM EQUAL_SYM Type SEMICOLON_SYM SubTypeDecl { SymbolTab::addType($3, $1); }
+SubTypeDecl:    IDENT_SYM EQUAL_SYM Type SEMICOLON_SYM //{ SymbolTab::addType($3, $1); }
+                | IDENT_SYM EQUAL_SYM Type SEMICOLON_SYM SubTypeDecl //{ SymbolTab::addType($3, $1); }
 
-Type:           SimpleType      { $$ = $1; }
-                | RecordType    { $$ = $1; }
-                | ArrayType     { $$ = $1; }
+Type:           SimpleType      //{ $$ = $1; }
+                | RecordType    //{ $$ = $1; }
+                | ArrayType     //{ $$ = $1; }
                 ;
 
-SimpleType:     IDENT_SYM       { $$ = $1; }
+SimpleType:     IDENT_SYM       //{ $$ = $1; }
                 ;
 
-RecordType:     RECORD_SYM RecordItem END_SYM   { $$ = SymbolTab::makeRecordType($2); }
+RecordType:     RECORD_SYM RecordItem END_SYM   //{ $$ = SymbolTab::makeRecordType($2); }
                 ;
 
-RecordItem:     IdentList COLON_SYM Type SEMICOLON_SYM RecordItem { $$ = SymbolTab::makeRecordItem($1, $3, $5);}
+RecordItem:     IdentList COLON_SYM Type SEMICOLON_SYM RecordItem //{ $$ = SymbolTab::makeRecordItem($1, $3, $5);}
                 | /* nothing */
                 ;
 
-ArrayType:      ARRAY_SYM L_BRACKET_SYM ConstExpression COLON_SYM ConstExpression R_BRACKET_SYM OF_SYM Type { $$ = SymbolTab::makeArrayType($3,$5,$8); }
+ArrayType:      ARRAY_SYM L_BRACKET_SYM ConstExpression COLON_SYM ConstExpression R_BRACKET_SYM OF_SYM Type //{ $$ = SymbolTab::makeArrayType($3,$5,$8); }
                 ;
 
-IdentList:      IDENT_SYM                           { $$ = SymbolTab::makeIdentList($1); }
-                | IDENT_SYM COMMA_SYM IdentList     { $$ = SymbolTab::makeIdentList($1, $3); }
+IdentList:      IDENT_SYM                           //{ $$ = SymbolTab::makeIdentList($1); }
+                | IDENT_SYM COMMA_SYM IdentList     //{ $$ = SymbolTab::makeIdentList($1, $3); }
                 ;
 
 /* 3.1.4 Variable Declarations */

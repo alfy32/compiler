@@ -1,6 +1,8 @@
 #ifndef FUNC_HPP
 #define FUNC_HPP
 
+#include <vector>
+
 #include "Symbol.hpp"
 
 class Func : public Symbol {

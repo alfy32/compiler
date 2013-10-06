@@ -4,7 +4,7 @@
 #include "Symbol.hpp"
 
 class Type : public Symbol {
-
+	int size;
 };
 
 #endif

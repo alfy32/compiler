@@ -40,7 +40,7 @@ test: test.cpp
 
 lex: cpsl.l
 	flex -f cpsl.l
-	g++ lex.yy.c -o lex
+	g++ -std=c++11 lex.yy.c -o lex
 	./lex test_lex
 
 bison: cpsl.y 
