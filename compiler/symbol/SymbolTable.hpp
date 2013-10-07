@@ -5,6 +5,7 @@
 #include <memory>
 
 #include "Symbol.hpp"
+#include "cpsl.tab.h"
 
 class SymbolTable {
 /* Singleton Stuff */
@@ -19,7 +20,7 @@ public:
 	}
 /* End Singleton Stuff */
 
-private:	
+public:	
 	std::map<std::string, std::shared_ptr<Symbol> > table;
 
 public:
@@ -27,6 +28,32 @@ public:
 		
 	}
 	void add(std::shared_ptr<Symbol>);
+
+
+	static makeFormalParams(std::vector<std::string>, Type type) {
+
+	}
+
+	static makeFormalParams(std::vector<std::string>, Type type, ) {
+		
+	}
+
+	static std::vector<std::string>* makeIdentList(std::string ident) {
+		return new std::vector<std::string>(ident);
+	}
+
+	static std::vector<std::string>* makeIdentList(std::string ident, std::vector<std::string>* identList) {
+		identList->push_back(ident);
+		return identList;
+	}	
+
+	static void addType(std::string, Type*) {
+
+	}
+
+	static evaluateConstExpression(int, int, int);
+	static evaluateConstExpression(std::string, int, std::string);
+	static evaluateConstExpression(Const, int, Const);
 };
 
 #endif

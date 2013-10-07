@@ -9,6 +9,11 @@
 
 class Record : public Type {
 	std::map<std::string, std::pair<std::shared_ptr<Type>, int> > types;
+
+public:
+	Record(std::map<std::string, std::pair<std::shared_ptr<Type> types) {
+		this->types = types;
+	}
 };
 
 #endif

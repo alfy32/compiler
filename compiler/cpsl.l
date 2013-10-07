@@ -6,15 +6,16 @@
 
 int yyerror(const char* s);
 int yyLineCount = 1;
+extern int yylval;
 
 void keyword(std::string word);
-void identifier(std::string ident);
+std::string* identifier(std::string ident);
 void oper();
-void octal();
-void hex();
-void decimal();
-void charConst();
-void strConst();
+int octal();
+int hex();
+int decimal();
+std::string* charConst();
+std::string* strConst();
 void comment();
 void endOfLine();
 void endOfFile();
@@ -55,14 +56,14 @@ THEN|then				{ keyword("THEN");      return THEN_SYM;}
 WRITE|write				{ keyword("WRITE");     return WRITE_SYM;}
 
 
-integer					{ identifier("integer");return IDENT_SYM;}
-char					{ identifier("char"); 	return IDENT_SYM;}
-boolean					{ identifier("boolean");return IDENT_SYM;}
-string	 				{ identifier("string"); return IDENT_SYM;}
-true					{ identifier("true"); 	return IDENT_SYM;}
-false					{ identifier("false"); 	return IDENT_SYM;}
+integer					{ yylval.str_val = identifier("integer");	return IDENT_SYM;}
+char					{ yylval.str_val = identifier("char"); 		return IDENT_SYM;}
+boolean					{ yylval.str_val = identifier("boolean");	return IDENT_SYM;}
+string	 				{ yylval.str_val = identifier("string"); 	return IDENT_SYM;}
+true					{ yylval.str_val = identifier("true"); 		return IDENT_SYM;}
+false					{ yylval.str_val = identifier("false"); 	return IDENT_SYM;}
 
-[a-zA-Z][a-zA-Z0-9_]*	{ identifier("variable"); return IDENT_SYM;}
+[a-zA-Z][a-zA-Z0-9_]*	{ yylval.str_val = identifier("variable"); 	return IDENT_SYM;}
 
 
 "+"						{ oper(); return ADD_SYM;}
@@ -90,16 +91,16 @@ false					{ identifier("false"); 	return IDENT_SYM;}
 "%"						{ oper(); return MOD_SYM;}
 
 
-0[0-7]+					{ octal(); 		return INT_CONST_SYM;}
-0x[0-9a-fA-f]+			{ hex(); 		return INT_CONST_SYM;} 
-[0-9]+					{ decimal(); 	return INT_CONST_SYM;} 
+0[0-7]+					{ yylval.int_val = octal(); 	return INT_CONST_SYM;}
+0x[0-9a-fA-f]+			{ yylval.int_val = hex(); 		return INT_CONST_SYM;} 
+[0-9]+					{ yylval.int_val = decimal(); 	return INT_CONST_SYM;} 
 
 
-'[ -~]'					{ charConst(); 	return CHAR_CONST_SYM;}
-'\\n'|'\\r'|'\\b'		{ charConst(); 	return CHAR_CONST_SYM;}
-'\\t'|'\\f'				{ charConst(); 	return CHAR_CONST_SYM;}
+'[ -~]'					{ yylval.str_val = charConst();	return CHAR_CONST_SYM;}
+'\\n'|'\\r'|'\\b'		{ yylval.str_val = charConst();	return CHAR_CONST_SYM;}
+'\\t'|'\\f'				{ yylval.str_val = charConst();	return CHAR_CONST_SYM;}
 
-["][ !#-~]*["]			{ strConst(); 	return STR_CONST_SYM;}
+["][ !#-~]*["]			{ yylval.str_val = strConst(); 	return STR_CONST_SYM;}
 
 
 $.*						{ comment(); }
@@ -135,39 +136,40 @@ void keyword(std::string word) {
 	std::cout << "Keyword: " << word << " (" << yytext << ")" << std::endl;
 }
 
-void identifier(std::string ident) {
+std::string* identifier(std::string ident) {
 	std::cout << "Identifier: " << ident << " (" << yytext << ")" << std::endl;
+	return new std::string(ident);
 }
 
 void oper() {
 	std::cout << "Operator: " << yytext << std::endl;
 }
 
-void octal() {
+int octal() {
 	std::cout << "Octal Number: " << yytext << std::endl;
 
-	yylval.int_val = std::stoi(yytext, nullptr, 8);
+	return std::stoi(yytext, nullptr, 8);
 }
-void hex() {
+int hex() {
 	std::cout << "Hex Number: " << yytext << std::endl;
 
-	yylval.int_val = std::stoi(yytext, nullptr, 16);
+	return std::stoi(yytext, nullptr, 16);
 }
-void decimal() {
+int decimal() {
 	std::cout << "Decimal Number: " << yytext << std::endl;
 
-	yylval.int_val = std::stoi(yytext, nullptr, 10);
+	return std::stoi(yytext, nullptr, 10);
 }
 
-void charConst() {
+std::string* charConst() {
 	std::cout << "Character Constant: " << yytext << std::endl;
 
-	yylval.char_val = yytext[1];
+	return new std::string(yytext);
 }
-void strConst() {
+std::string* strConst() {
 	std::cout << "String Constant: " << yytext << std::endl;
 
-	yylval.str_val = new std::string(yytext);
+	return new std::string(yytext);
 }
 
 void comment() {

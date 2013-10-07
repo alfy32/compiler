@@ -11,16 +11,18 @@ SymbolTab symbolTab;
 
 %union {
     int int_val;
-    char char_val;
-    std::string* str_val;
+    char* str_val;
 
-    int op;
-    int token;
-    int keyword;
+    void* op;
+    void* token;
+    void* keyword;
 
     std::string* indent;
 
     Symbol* symbol;
+
+    std::vector<Type>* type_list;
+    std::vector<std::string>* ident_list;
 }
 
 %start Program
@@ -53,8 +55,12 @@ SymbolTab symbolTab;
 
 %token <indent>     IDENT_SYM
 %token <int_val>    INT_CONST_SYM
-%token <char_val>   CHAR_CONST_SYM
+%token <str_val>    CHAR_CONST_SYM
 %token <str_val>    STR_CONST_SYM
+
+%type <type_list> FormalParameters
+%type <ident_list> IdentList
+%type <symbol> Type SimpleType RecordType ArrayType
 
 %right          NEG_SYM
 %left           MULTIPLY_SYM DIVIDE_SYM MOD_SYM
@@ -96,17 +102,17 @@ SubConstDecl:   IDENT_SYM EQUAL_SYM ConstExpression SEMICOLON_SYM
 
 /* 3.1.2 Procedure and Function Declarations */
 
-ProcedureDecl:  PROCEDURE_SYM IDENT_SYM L_PAREN_SYM FormalParameters R_PAREN_SYM SEMICOLON_SYM FORWARD_SYM SEMICOLON_SYM   // { SymbolTab::add(std::make_shared<Func>($2,$4,true)); }
-                | PROCEDURE_SYM IDENT_SYM L_PAREN_SYM FormalParameters R_PAREN_SYM SEMICOLON_SYM Body SEMICOLON_SYM        // { SymbolTab::add(std::make_shared<Func>($2,$4,true)); }
+ProcedureDecl:  PROCEDURE_SYM IDENT_SYM L_PAREN_SYM FormalParameters R_PAREN_SYM SEMICOLON_SYM FORWARD_SYM SEMICOLON_SYM    { SymbolTab::add(std::make_shared<Func>($2,$4,true)); }
+                | PROCEDURE_SYM IDENT_SYM L_PAREN_SYM FormalParameters R_PAREN_SYM SEMICOLON_SYM Body SEMICOLON_SYM         { SymbolTab::add(std::make_shared<Func>($2,$4,true)); }
                 ;
 
 FunctionDecl:   FUNCTION_SYM IDENT_SYM L_PAREN_SYM FormalParameters R_PAREN_SYM COLON_SYM Type SEMICOLON_SYM FORWARD_SYM SEMICOLON_SYM // { SymbolTab::add(std::make_shared<Func>($2,$4);}
                 | FUNCTION_SYM IDENT_SYM L_PAREN_SYM FormalParameters R_PAREN_SYM COLON_SYM Type SEMICOLON_SYM Body SEMICOLON_SYM      // { SymbolTab::addFuncProc($2,$4);}
                 ;
 
-FormalParameters: /* nothing */
-                | SubVar IdentList COLON_SYM Type //{ $$ = SymbolTab::makeFormalParams($2, $4); }
-                | SubVar IdentList COLON_SYM Type SEMICOLON_SYM FormalParameters //{ $$ = SymbolTab::makeFormalParams($2, $4, $6); }
+FormalParameters: /* nothing */  { $$ = NULL; }
+                | SubVar IdentList COLON_SYM Type   { $$ = SymbolTab::makeFormalParams($2, $4); }
+                | SubVar IdentList COLON_SYM Type SEMICOLON_SYM FormalParameters { $$ = SymbolTab::makeFormalParams($2, $4, $6); }
                 ;
 
 SubVar:         VAR_SYM
@@ -124,29 +130,29 @@ Block:          BEGIN_SYM StatementSequence END_SYM
 TypeDecl:       TYPE_SYM SubTypeDecl
                 ;
 
-SubTypeDecl:    IDENT_SYM EQUAL_SYM Type SEMICOLON_SYM //{ SymbolTab::addType($3, $1); }
-                | IDENT_SYM EQUAL_SYM Type SEMICOLON_SYM SubTypeDecl //{ SymbolTab::addType($3, $1); }
+SubTypeDecl:    IDENT_SYM EQUAL_SYM Type SEMICOLON_SYM                  { SymbolTab::addType($3, $1); }
+                | IDENT_SYM EQUAL_SYM Type SEMICOLON_SYM SubTypeDecl    { SymbolTab::addType($3, $1); }
 
-Type:           SimpleType      //{ $$ = $1; }
-                | RecordType    //{ $$ = $1; }
-                | ArrayType     //{ $$ = $1; }
+Type:           SimpleType      { $$ = $1; }
+                | RecordType    { $$ = $1; }
+                | ArrayType     { $$ = $1; }
                 ;
 
-SimpleType:     IDENT_SYM       //{ $$ = $1; }
+SimpleType:     IDENT_SYM       { $$ = new SimpleType($1); }
                 ;
 
-RecordType:     RECORD_SYM RecordItem END_SYM   //{ $$ = SymbolTab::makeRecordType($2); }
+RecordType:     RECORD_SYM RecordItem END_SYM   { $$ = new RecordType($2); }
                 ;
 
-RecordItem:     IdentList COLON_SYM Type SEMICOLON_SYM RecordItem //{ $$ = SymbolTab::makeRecordItem($1, $3, $5);}
-                | /* nothing */
+RecordItem:     IdentList COLON_SYM Type SEMICOLON_SYM RecordItem  { $$ = SymbolTab::makeRecordItem($1, $3, $5); }
+                | /* nothing */     { $$ = SymbolTab::makeRecordItem(NULL, NULL, NULL); }
                 ;
 
-ArrayType:      ARRAY_SYM L_BRACKET_SYM ConstExpression COLON_SYM ConstExpression R_BRACKET_SYM OF_SYM Type //{ $$ = SymbolTab::makeArrayType($3,$5,$8); }
+ArrayType:      ARRAY_SYM L_BRACKET_SYM ConstExpression COLON_SYM ConstExpression R_BRACKET_SYM OF_SYM Type { $$ = new ArrayType($3, $5, $8); }
                 ;
 
-IdentList:      IDENT_SYM                           //{ $$ = SymbolTab::makeIdentList($1); }
-                | IDENT_SYM COMMA_SYM IdentList     //{ $$ = SymbolTab::makeIdentList($1, $3); }
+IdentList:      IDENT_SYM                           { $$ = SymbolTab::makeIdentList($1); }
+                | IDENT_SYM COMMA_SYM IdentList     { $$ = SymbolTab::makeIdentList($1, $3); }
                 ;
 
 /* 3.1.4 Variable Declarations */
@@ -325,26 +331,26 @@ SubLValue:      DOT_SYM IDENT_SYM
                 | L_BRACKET_SYM Expression R_BRACKET_SYM
                 ;
 
-ConstExpression: ConstExpression OR_SYM ConstExpression
-                | ConstExpression AND_SYM ConstExpression
-                | ConstExpression EQUAL_SYM ConstExpression
-                | ConstExpression NOT_EQUAL_SYM ConstExpression
-                | ConstExpression LT_EQ_SYM ConstExpression
-                | ConstExpression GT_EQ_SYM ConstExpression
-                | ConstExpression LT_SYM ConstExpression
-                | ConstExpression GT_SYM ConstExpression
-                | ConstExpression ADD_SYM ConstExpression
-                | ConstExpression SUBTRACT_SYM ConstExpression
-                | ConstExpression MULTIPLY_SYM ConstExpression
-                | ConstExpression DIVIDE_SYM ConstExpression
-                | ConstExpression MOD_SYM ConstExpression
-                | TILDE_SYM ConstExpression
-                | NEG_SYM ConstExpression
-                | L_PAREN_SYM ConstExpression R_PAREN_SYM
-                | INT_CONST_SYM
-                | CHAR_CONST_SYM
-                | STR_CONST_SYM
-                | IDENT_SYM
+ConstExpression: ConstExpression OR_SYM ConstExpression         { $$ = SymbolTab::evaluateConstExpression($1, OP_OR, $3); }
+                | ConstExpression AND_SYM ConstExpression       { $$ = SymbolTab::evaluateConstExpression($1, OP_AND, $3); }
+                | ConstExpression EQUAL_SYM ConstExpression     { $$ = SymbolTab::evaluateConstExpression($1, OP_EQUAL, $3); }
+                | ConstExpression NOT_EQUAL_SYM ConstExpression { $$ = SymbolTab::evaluateConstExpression($1, OP_NOT_EQUAL, $3); }
+                | ConstExpression LT_EQ_SYM ConstExpression     { $$ = SymbolTab::evaluateConstExpression($1, $2, $3); }
+                | ConstExpression GT_EQ_SYM ConstExpression     { $$ = SymbolTab::evaluateConstExpression($1, $2, $3); }
+                | ConstExpression LT_SYM ConstExpression        { $$ = SymbolTab::evaluateConstExpression($1, $2, $3); }
+                | ConstExpression GT_SYM ConstExpression        { $$ = SymbolTab::evaluateConstExpression($1, $2, $3); }
+                | ConstExpression ADD_SYM ConstExpression       { $$ = SymbolTab::evaluateConstExpression($1, $2, $3); }
+                | ConstExpression SUBTRACT_SYM ConstExpression  { $$ = SymbolTab::evaluateConstExpression($1, $2, $3); }
+                | ConstExpression MULTIPLY_SYM ConstExpression  { $$ = SymbolTab::evaluateConstExpression($1, $2, $3); }
+                | ConstExpression DIVIDE_SYM ConstExpression    { $$ = SymbolTab::evaluateConstExpression($1, $2, $3); }
+                | ConstExpression MOD_SYM ConstExpression       { $$ = SymbolTab::evaluateConstExpression($1, $2, $3); }
+                | TILDE_SYM ConstExpression                     { $$ = SymbolTab::evaluateConstExpression($1, $2); }
+                | NEG_SYM ConstExpression                       { $$ = SymbolTab::evaluateConstExpression($1, $2); }
+                | L_PAREN_SYM ConstExpression R_PAREN_SYM       { $$ = SymbolTab::evaluateConstExpression($1, $2); }
+                | INT_CONST_SYM                                 { $$ = SymbolTab::evaluateConstExpression($1); }
+                | CHAR_CONST_SYM                                { $$ = SymbolTab::evaluateConstExpression($1); }
+                | STR_CONST_SYM                                 { $$ = SymbolTab::evaluateConstExpression($1); }
+                | IDENT_SYM                                     { $$ = SymbolTab::evaluateConstExpression($1); }
                 ;
 
 
