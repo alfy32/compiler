@@ -1,4 +1,4 @@
 #include "Symbol.hpp"
 
 
-std::shared_ptr<SymbolTable> SymbolTable::symbolTableInstance = NULL;
+SymbolTable* SymbolTable::symbolTableInstance = NULL;

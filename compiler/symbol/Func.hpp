@@ -11,7 +11,13 @@ class Func : public Symbol {
 	// location: label
 	std::string location;
 
+	bool isForward;
+
 public: 
+	// (name, FormalParameters, isForward)
+	Func(std::string, std::vector<Type>, bool) {
+				
+	}
 	void print();
 };
 

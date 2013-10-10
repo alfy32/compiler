@@ -19,6 +19,7 @@
 
     std::vector<Symbol*>* symbolVector_val;
     std::vector<Type*>* typeVector_val;
+    std::vector<std::string>* identList;
 }
 
 %start Program
@@ -56,7 +57,8 @@
 
 %type <const_val> ConstExpression
 %type <symbol_val> Expression
-%type <symbolVector_val> ExpressionList IdentList
+%type <symbolVector_val> ExpressionList 
+%type <identList> IdentList
 %type <typeVector_val> RecordItem
 %type <int_val> LValue
 %type <type_val> Type SimpleType ArrayType RecordType
@@ -137,21 +139,21 @@ Type:           SimpleType      { $$ = $1; }
                 | ArrayType     { $$ = $1; } 
                 ;
 
-SimpleType:     IDENT_SYM       { $$ = new SimpleType($1); $$->print(); }
+SimpleType:     IDENT_SYM       { $$ = new SimpleType($1); }
                 ;
 
 RecordType:     RECORD_SYM RecordItem END_SYM  { $$ = new Record($2); }
                 ;
 
-RecordItem:     IdentList COLON_SYM Type SEMICOLON_SYM                  { $$ = SymbolTable::makeTypeList($1, $3, NULL); }
-                | IdentList COLON_SYM Type SEMICOLON_SYM RecordItem     { $$ = SymbolTable::makeTypeList($1, $3, $5); }
+RecordItem:     IdentList COLON_SYM Type SEMICOLON_SYM                  { $$ = SymbolTable::makeRecordItem($1, $3, NULL); }
+                | IdentList COLON_SYM Type SEMICOLON_SYM RecordItem     { $$ = SymbolTable::makeRecordItem($1, $3, $5); }
                 ;
 
 ArrayType:      ARRAY_SYM L_BRACKET_SYM ConstExpression COLON_SYM ConstExpression R_BRACKET_SYM OF_SYM Type { $$ = new Array($3, $5, $8); }
                 ;
 
-IdentList:      IDENT_SYM                           { $$ = SymbolTable::makeSymbolVector(new Symbol($1), NULL); }
-                | IDENT_SYM COMMA_SYM IdentList     { $$ = SymbolTable::makeSymbolVector(new Symbol($1), $3); }
+IdentList:      IDENT_SYM                           { $$ = SymbolTable::makeIdentList($1, NULL); }
+                | IDENT_SYM COMMA_SYM IdentList     { $$ = SymbolTable::makeIdentList($1, $3); }
                 ;
 
 /* 3.1.4 Variable Declarations */
@@ -253,12 +255,12 @@ Expression:     Expression OR_SYM Expression            { $$ = SymbolTable::expr
                 | NEG_SYM Expression                    { $$ = SymbolTable::expression($1, $2); }
                 | L_PAREN_SYM Expression R_PAREN_SYM    { $$ = $2; }
                 | IDENT_SYM L_PAREN_SYM R_PAREN_SYM     { $$ = SymbolTable::function_call($1); }
-                | IDENT_SYM L_PAREN_SYM ExpressionList R_PAREN_SYM { $$ = SymbolTable::function_call($1, $3); }
-                | CHR_SYM L_PAREN_SYM Expression R_PAREN_SYM { $$ = SymbolTable::chr($3); }
-                | ORD_SYM L_PAREN_SYM Expression R_PAREN_SYM { $$ = SymbolTable::ord($3); }
-                | PRED_SYM L_PAREN_SYM Expression R_PAREN_SYM { $$ = SymbolTable::pred($3); }
-                | SUCC_SYM L_PAREN_SYM Expression R_PAREN_SYM { $$ = SymbolTable::succ($3); }
-                | LValue  { $$ = SymbolTable::expressionLvalue($1); }
+                | IDENT_SYM L_PAREN_SYM ExpressionList R_PAREN_SYM  { $$ = SymbolTable::function_call($1, $3); }
+                | CHR_SYM L_PAREN_SYM Expression R_PAREN_SYM        { $$ = SymbolTable::chr($3); }
+                | ORD_SYM L_PAREN_SYM Expression R_PAREN_SYM        { $$ = SymbolTable::ord($3); }
+                | PRED_SYM L_PAREN_SYM Expression R_PAREN_SYM       { $$ = SymbolTable::pred($3); }
+                | SUCC_SYM L_PAREN_SYM Expression R_PAREN_SYM       { $$ = SymbolTable::succ($3); }
+                | LValue                                            { $$ = SymbolTable::expressionLvalue($1); }
                 // | ConstExpression
                 // I added this to make it work. Figure out how to fix better later. 
                 | INT_CONST_SYM     { $<const_val>$ = new Int($1);     }
@@ -327,30 +329,30 @@ SubLValueStar:  SubLValue                       { $<int_val>$ = 12; }
                 | SubLValue SubLValueStar       { $<int_val>$ = 12; }
                 ;
 
-SubLValue:      DOT_SYM IDENT_SYM               { $<int_val>$ = 12; }
-                | L_BRACKET_SYM Expression R_BRACKET_SYM { $<int_val>$ = 12; }
+SubLValue:      DOT_SYM IDENT_SYM                           { $<int_val>$ = 12; }
+                | L_BRACKET_SYM Expression R_BRACKET_SYM    { $<int_val>$ = 12; }
                 ;
 
-ConstExpression: ConstExpression OR_SYM ConstExpression             { $$ = new Const($1,"|",$3); $$->print(); }
-                | ConstExpression AND_SYM ConstExpression           { $$ = new Const($1,"&",$3); $$->print(); }
-                | ConstExpression EQUAL_SYM ConstExpression         { $$ = new Const($1,"=",$3); $$->print(); }
-                | ConstExpression NOT_EQUAL_SYM ConstExpression     { $$ = new Const($1,"<>",$3); $$->print(); }
-                | ConstExpression LT_EQ_SYM ConstExpression         { $$ = new Const($1,"<=",$3); $$->print(); }
-                | ConstExpression GT_EQ_SYM ConstExpression         { $$ = new Const($1,">=",$3); $$->print(); }
-                | ConstExpression LT_SYM ConstExpression            { $$ = new Const($1,"<",$3); $$->print(); }
-                | ConstExpression GT_SYM ConstExpression            { $$ = new Const($1,">",$3); $$->print(); }
-                | ConstExpression ADD_SYM ConstExpression           { $$ = new Const($1,"+",$3); $$->print(); }
-                | ConstExpression SUBTRACT_SYM ConstExpression      { $$ = new Const($1,"-",$3); $$->print(); }
-                | ConstExpression MULTIPLY_SYM ConstExpression      { $$ = new Const($1,"*",$3); $$->print(); }
-                | ConstExpression DIVIDE_SYM ConstExpression        { $$ = new Const($1,"/",$3); $$->print(); }
-                | ConstExpression MOD_SYM ConstExpression           { $$ = new Const($1,"%",$3); $$->print(); }
-                | TILDE_SYM ConstExpression                         { $$ = new Const("~", $2); $$->print(); }
-                | NEG_SYM ConstExpression                           { $$ = new Const("neg", $2); $$->print(); }
-                | L_PAREN_SYM ConstExpression R_PAREN_SYM           { $$ = $2; $$->print(); }
-                | INT_CONST_SYM                                     { $$ = new Int($1); $$->print(); }
-                | CHAR_CONST_SYM                                    { $$ = new Char($1); $$->print(); }
-                | STR_CONST_SYM                                     { $$ = new String($1); $$->print(); }
-                | IDENT_SYM                                         { $$ = new Const($1); $$->print(); }
+ConstExpression: ConstExpression OR_SYM ConstExpression             { $$ = new Const($1,"|",$3); }
+                | ConstExpression AND_SYM ConstExpression           { $$ = new Const($1,"&",$3); }
+                | ConstExpression EQUAL_SYM ConstExpression         { $$ = new Const($1,"=",$3); }
+                | ConstExpression NOT_EQUAL_SYM ConstExpression     { $$ = new Const($1,"<>",$3); }
+                | ConstExpression LT_EQ_SYM ConstExpression         { $$ = new Const($1,"<=",$3); }
+                | ConstExpression GT_EQ_SYM ConstExpression         { $$ = new Const($1,">=",$3); }
+                | ConstExpression LT_SYM ConstExpression            { $$ = new Const($1,"<",$3); }
+                | ConstExpression GT_SYM ConstExpression            { $$ = new Const($1,">",$3); }
+                | ConstExpression ADD_SYM ConstExpression           { $$ = new Const($1,"+",$3); }
+                | ConstExpression SUBTRACT_SYM ConstExpression      { $$ = new Const($1,"-",$3); }
+                | ConstExpression MULTIPLY_SYM ConstExpression      { $$ = new Const($1,"*",$3); }
+                | ConstExpression DIVIDE_SYM ConstExpression        { $$ = new Const($1,"/",$3); }
+                | ConstExpression MOD_SYM ConstExpression           { $$ = new Const($1,"%",$3); }
+                | TILDE_SYM ConstExpression                         { $$ = new Const("~", $2); }
+                | NEG_SYM ConstExpression                           { $$ = new Const("neg", $2); }
+                | L_PAREN_SYM ConstExpression R_PAREN_SYM           { $$ = $2; }
+                | INT_CONST_SYM                                     { $$ = new Int($1); }
+                | CHAR_CONST_SYM                                    { $$ = new Char($1); }
+                | STR_CONST_SYM                                     { $$ = new String($1); }
+                | IDENT_SYM                                         { $$ = new Const($1); }
                 ;
 
 

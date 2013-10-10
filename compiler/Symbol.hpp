@@ -13,7 +13,9 @@ class Symbol {
 public:
 	std::string name;
 
-	Symbol() {}
+	Symbol() {
+		name = "NO_NAME";
+	}
 
 	Symbol(std::string identifier) {
 		name = identifier;
@@ -24,28 +26,45 @@ public:
 	}
 };
 
-enum ConstType { CONST_INT, CONST_STR, CONST_CHAR }; 
+enum ConstType { CONST_INT, CONST_STR, CONST_CHAR, UNKNOWN_TYPE }; 
 
 class Const : public Symbol {
 public:
 	ConstType constType;
 
-	Const() {}
+	Const() {
+		name = "NO_NAME";
+		constType = UNKNOWN_TYPE;
+	}
 
 	Const(Const* left, std::string op, Const* right) {
+		if(left->constType == right->constType) {
+			name = left->name;
+			constType = left->constType;
+		} else {
+			std::cout << "We failed here. These are different const types. I can't do the operation " << op << ".";
+			exit(1);
+		}
 		name = "Operation";
 	}
 
 	Const(std::string op, Const* right) {
-		name = "Operation";
+		if(right->constType == CONST_INT) {
+			name = right->name;
+			constType = right->constType;
+		} else {
+			name = "Operation";
+			constType = UNKNOWN_TYPE;
+		}
 	}
 
 	Const(std::string identifier) {
 		name = identifier;
+		constType = UNKNOWN_TYPE;
 	}
 
 	virtual void print() {
-		std::cout << "Const: " << name << std::endl;
+		std::cout << "Const: " << name << " Type: " << constType << std::endl;
 	}
 };
 
@@ -54,7 +73,11 @@ public:
 	std::string val;
 
 	String(char* value) {
-		val = value;
+		std::string makeValue(value);
+		val = makeValue;
+
+		name = "NO_NAME";
+		constType = CONST_STR;
 	}
 
 	void print() {
@@ -67,7 +90,11 @@ public:
 	std::string val;
 
 	Char(char* value) {
-		val = value;
+		std::string makeValue(value);
+		val = makeValue;
+
+		name = "NO_NAME";
+		constType = CONST_CHAR;
 	}
 
 	void print() {
@@ -81,6 +108,9 @@ public:
 
 	Int(int value) {
 		val = value;
+
+		name = "NO_NAME";
+		constType = CONST_INT;
 	}
 
 	void print() {
@@ -92,10 +122,14 @@ class Type : public Symbol {
 public:
 	int size;
 
-	Type() {}
+	Type() {
+		name = "NO_NAME";
+		size = 4;
+	}
 
 	Type(std::string identifier) {
 		name = identifier;
+		size = 4;
 	}
 
 	virtual void print() {
@@ -107,6 +141,7 @@ class SimpleType : public Type {
 public:
 
 	SimpleType() {
+		name = "NO_NAME";
 		size = 4;
 	}
 
@@ -124,21 +159,40 @@ class Record : public Type {
 public:
 	std::map<std::string, std::pair<Type*, int> > recordMap;
 
+	Record() {
+		name = "NO_NAME";
+		size = 0;
+	}
+
 	Record(std::vector<Type*>* types) {
+		name = "NO_NAME";
+		
+		int offset = 0;
+
 		for(int i = 0; i < types->size(); i++) {
-			//recordMap[(*types)[i]->name] = std::make_pair<Type*, int>((*types)[i], types[i].size);
+			Type* theType = (*types)[i];
+
+			theType->print();
+
+			std::pair<Type*, int> thePair = std::make_pair(theType, offset);
+
+			offset += theType->size;
+
+			recordMap[theType->name] = thePair;
 		}
+
+		size = offset;
 	}
 
 	virtual void print() {
 		std::cout << "Record Type: " << std::endl;
 
-		for(auto iter = recordMap.begin(); iter != recordMap.end(); iter++) {
-			// auto thePair = iter->second;
+		// for(auto iter = recordMap.begin(); iter != recordMap.end(); iter++) {
+		// 	// auto thePair = iter->second;
 
-			// std::cout << "  Offset: " << thePair.second; 
-			// thePair.first->print();
-		}
+		// 	// std::cout << "  Offset: " << thePair.second; 
+		// 	// thePair.first->print();
+		// }
 	}
 };
 
@@ -148,40 +202,60 @@ public:
 	int low;
 	int upper;
 
-	Array() {}
+	Array() {
+		name = "NO_NAME";
+		size = 0;
+
+		low = 0;
+		upper = 0;
+
+		type = new Type();
+	}
 
 	Array(Const* lower, Const* upper, Type* type) {
-		this->type = type;
+		name = "NO_NAME";
+		size = 0;
+
+		low = 0;
+		upper = 0;
+
+		type = new Type();
+
+		// this->type = type;
 		// this->low = dynamic_cast<Int*>(lower)->val;
 		// this->upper = dynamic_cast<Int*>(upper)->val;
 	}
 };
 
 class Table {
+public: 
 	std::map<std::string, Symbol*> tableMap;
 
-public:
+
+	Table() {
+		tableMap["integer"] = new SimpleType("integer");
+		tableMap["char"] = new SimpleType("char");
+		tableMap["string"] = new SimpleType("string");
+	}
+
 	void add(Symbol* symbol) {
-		// std::cout << "Adding to table: ";
-		// symbol->print();
+		std::cout << "Adding to table: ";
+		symbol->print();
 
 
-		// if(tableMap.find(symbol->name) != tableMap.end()) {
-		// 	std::cout << "We alread have that symbol in the table. I quit!!!!" << std::endl;
-		// 	exit(1);
-		// }
+		if(tableMap.find(symbol->name) != tableMap.end()) {
+			std::cout << "We alread have the symbol (" << symbol->name << ") in the table. I quit!!!!" << std::endl;
+			exit(1);
+		}
 
-		// this->tableMap[name] = symbol;
-
-		// std::cout << "Adding to table: ";
-		// symbol->print();
+		this->tableMap[symbol->name] = symbol;
 	}
 
 	Symbol* lookup(std::string name) {
 		if(tableMap.find(name) != tableMap.end()) {
 			return tableMap.find(name)->second;
 		} else {
-			std::cout << "That symbol doesn't exist. I'm going to die!" << std::endl;
+			return NULL;
 		}
 	}
 };
@@ -189,18 +263,19 @@ public:
 class SymbolTable {
 	/* Singleton Stuff */
 private:
-	static std::shared_ptr<SymbolTable> symbolTableInstance;
+	static SymbolTable* symbolTableInstance;
 
 public:
-	static std::shared_ptr<SymbolTable> getInstance() {
-		if(!symbolTableInstance){
-			symbolTableInstance = std::make_shared<SymbolTable>();
+	static SymbolTable* getInstance() {
+		if(symbolTableInstance == NULL) {
+			symbolTableInstance = new SymbolTable;
 		}
+		return symbolTableInstance;
 	}
 /* End Singleton Stuff */
 
 public:
-	std::vector<Table> symbolTable;
+	std::vector<Table> symbolTable; 
 
 	SymbolTable() {
 		Table newTable;
@@ -211,10 +286,9 @@ public:
 
 	static void constDecl(std::string identifier, Const* constExpression) {
 		constExpression->name = identifier;
-		constExpression->print();
 
-		auto tableInstance = getInstance();
-		tableInstance->symbolTable[0].add(constExpression);
+		SymbolTable* tableInstance = getInstance();
+		tableInstance->symbolTable.back().add(constExpression);
 	}
 
 	static void typeDecl(std::string identifier, Type* type) {
@@ -223,51 +297,51 @@ public:
 	}
 
 	static Symbol* expression(Symbol* left, void*, Symbol* right){
-
-		return left;
+		std::cout << "Expression: symbol, op, symbol" << std::endl;
+		return new Symbol("NO_NAME From expresssion");
 	}
 
 	static Symbol* expression(void*, Symbol* right){
-
-		return right;
+		std::cout << "Expression: op, symbol" << std::endl;
+		return new Symbol("NO_NAME From expresssion");
 	}
 
 	static Symbol* expressionLvalue(int){
-
-		return new Symbol();
+		std::cout << "Expression: int" << std::endl;
+		return new Symbol("NO_NAME From expresssion");
 	}
 
 	static Symbol* function_call(std::string identifier) {
-
+		std::cout << "Function Call: no params." << std::endl;
 		return new Symbol(identifier);
 	}
 
 	static Symbol* function_call(std::string identifier, std::vector<Symbol*>*) {
-
-		return NULL;
+		std::cout << "Function Call: has params." << std::endl;
+		return new Symbol(identifier);
 	}
 
 	static Symbol* chr(Symbol* symbol) {
-
-		return NULL;
+		std::cout << "CHR: " << std::endl;
+		return new Symbol("CHR thingy");
 	}
 
 	static Symbol* ord(Symbol* symbol) {
-
-		return NULL;
+		std::cout << "ORD: " << std::endl;
+		return new Symbol("ORD thingy");
 	}
 
 	static Symbol* pred(Symbol* symbol) {
-
-		return NULL;
+		std::cout << "PRED: " << std::endl;
+		return new Symbol("PRED thingy");
 	}
 
 	static Symbol* succ(Symbol* symbol) {
-
-		return NULL;
+		std::cout << "SUCC: " << std::endl;
+		return new Symbol("SUCC thingy");
 	}
 
-	static std::vector<Symbol*> * makeSymbolVector(Symbol* symbol, std::vector<Symbol*>* symbols) {
+	static std::vector<Symbol*>* makeSymbolVector(Symbol* symbol, std::vector<Symbol*>* symbols) {
 		if(symbols == NULL) {
 			symbols = new std::vector<Symbol*>;
 		}
@@ -287,6 +361,35 @@ public:
 			newType->name = (*identifiers)[i]->name;
 			symbols->push_back(newType);
 		}
+
+		return symbols;
+	}
+
+	static std::vector<std::string>* makeIdentList(std::string identifier, std::vector<std::string>* identList) {
+		if(identList == NULL) {
+			identList = new std::vector<std::string>;
+		}
+
+		identList->push_back(identifier);
+
+		return identList;
+	}
+
+	static std::vector<Type*>* makeRecordItem(std::vector<std::string>* identList, Type* type, std::vector<Type*>* recordItem) {
+		if(recordItem == NULL) {
+			recordItem = new std::vector<Type*>;
+		}
+
+		for(int i = 0; i < identList->size(); i++) {
+			Type* newType = new Type(*type);
+
+			newType->name = (*identList)[i];
+			
+
+			recordItem->push_back(newType);
+		}
+
+		return recordItem;
 	}
 };
 
