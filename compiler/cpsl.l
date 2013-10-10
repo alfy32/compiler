@@ -4,18 +4,21 @@
 #include "cpsl.h"
 #include "cpsl.tab.h"
 
-int yyerror(const char* s);
+extern YYSTYPE yylval;
+
 int yyLineCount = 1;
-extern int yylval;
+
+bool verboseLex = true;
+
 
 void keyword(std::string word);
-std::string* identifier(std::string ident);
+char* identifier(std::string ident);
 void oper();
 int octal();
 int hex();
 int decimal();
-std::string* charConst();
-std::string* strConst();
+char* charConst();
+char* strConst();
 void comment();
 void endOfLine();
 void endOfFile();
@@ -56,7 +59,7 @@ THEN|then				{ keyword("THEN");      return THEN_SYM;}
 WRITE|write				{ keyword("WRITE");     return WRITE_SYM;}
 
 
-integer					{ yylval.str_val = identifier("integer");	return IDENT_SYM;}
+integer					{ yylval.str_val = identifier("integer"); 	return IDENT_SYM;}
 char					{ yylval.str_val = identifier("char"); 		return IDENT_SYM;}
 boolean					{ yylval.str_val = identifier("boolean");	return IDENT_SYM;}
 string	 				{ yylval.str_val = identifier("string"); 	return IDENT_SYM;}
@@ -122,70 +125,101 @@ int yywrap() {
 	return 1;
 }
 
-int main( int argc, char **argv ) {
-	++argv, --argc;  
-	if ( argc > 0 )
-	     yyin = fopen( argv[0], "r" );
-	else
-	     yyin = stdin;
+// int main( int argc, char **argv ) {
+// 	++argv, --argc;  
+// 	if ( argc > 0 )
+// 	     yyin = fopen( argv[0], "r" );
+// 	else
+// 	     yyin = stdin;
 
-	yylex();
-}
+// 	yylex();
+// }
 
 void keyword(std::string word) {
-	std::cout << "Keyword: " << word << " (" << yytext << ")" << std::endl;
+	if(verboseLex) {
+		std::cout << "Keyword: " << word << " (" << yytext << ")" << std::endl;
+	}
 }
 
-std::string* identifier(std::string ident) {
-	std::cout << "Identifier: " << ident << " (" << yytext << ")" << std::endl;
-	return new std::string(ident);
+char* identifier(std::string ident) {
+	if(verboseLex) {
+		std::cout << "Identifier: " << ident << " (" << yytext << ")" << std::endl;
+	}
+
+	std::string label(yytext);
+	
+	return strcpy(new char[label.size()], label.c_str());
 }
 
 void oper() {
-	std::cout << "Operator: " << yytext << std::endl;
+	if(verboseLex) {
+		std::cout << "Operator: " << yytext << std::endl;
+	}
 }
 
 int octal() {
-	std::cout << "Octal Number: " << yytext << std::endl;
+	if(verboseLex) {
+		std::cout << "Octal Number: " << yytext << std::endl;
+	}
 
 	return std::stoi(yytext, nullptr, 8);
 }
 int hex() {
-	std::cout << "Hex Number: " << yytext << std::endl;
+	if(verboseLex) {
+		std::cout << "Hex Number: " << yytext << std::endl;
+	}
 
 	return std::stoi(yytext, nullptr, 16);
 }
 int decimal() {
-	std::cout << "Decimal Number: " << yytext << std::endl;
+	if(verboseLex) {
+		std::cout << "Decimal Number: " << yytext << std::endl;
+	}
 
 	return std::stoi(yytext, nullptr, 10);
 }
 
-std::string* charConst() {
-	std::cout << "Character Constant: " << yytext << std::endl;
+char* charConst() {
+	if(verboseLex) {
+		std::cout << "Character Constant: " << yytext << std::endl;
+	}
 
-	return new std::string(yytext);
+	std::string text(yytext);
+
+	return strcpy(new char[text.size()], text.c_str());
 }
-std::string* strConst() {
-	std::cout << "String Constant: " << yytext << std::endl;
+char* strConst() {
+	if(verboseLex) {
+		std::cout << "String Constant: " << yytext << std::endl;
+	}
 
-	return new std::string(yytext);
+	std::string text(yytext);
+
+	return strcpy(new char[text.size()], text.c_str());
 }
 
 void comment() {
-	std::cout << "Comment: " << yytext << std::endl; 
+	if(verboseLex) {
+		std::cout << "Comment: " << yytext << std::endl; 
+	}
 }
 
 void endOfLine() {
-	std::cout << "End of line: " << yylineno++ << std::endl;
+	if(verboseLex) {
+		std::cout << "End of line: " << yylineno++ << std::endl;
+	}
 }
 
 void endOfFile() {
-	std::cout << "This is the end!\n";
+	if(verboseLex) {
+		std::cout << "This is the end!\n";
+	}
 }
 
 void unrecognized() {
-	std::cout << "************UNRECOGNIZED CHARACTER: " << yytext << "************\n";
+	if(verboseLex) {
+		std::cout << "************UNRECOGNIZED CHARACTER: " << yytext << "************\n";
+	}
 
 	yyerror("Scanner: Invalid Character.");
 }

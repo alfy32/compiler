@@ -1,7 +1,7 @@
-all: cpsl
+all: clean cpsl
 
-cpsl: bison.o lex.o main.o
-	g++ -std=c++11 bison.o lex.o main.o -o cpsl
+cpsl: symbol.o bison.o lex.o main.o
+	g++ -std=c++11 symbol.o bison.o lex.o main.o -o cpsl
 
 lex.o: lex.yy.c
 	g++ -std=c++11 -c lex.yy.c -o lex.o
@@ -17,6 +17,9 @@ bison.c: cpsl.y
 
 main.o: main.cpp
 	g++ -std=c++11 -c main.cpp -o main.o
+
+symbol.o: Symbol.hpp Symbol.cpp
+	g++ -std=c++11 -c Symbol.cpp -o symbol.o
 
 
 clean:

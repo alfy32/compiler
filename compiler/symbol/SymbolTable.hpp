@@ -5,7 +5,7 @@
 #include <memory>
 
 #include "Symbol.hpp"
-#include "cpsl.tab.h"
+#include "../cpsl.tab.h"
 
 class SymbolTable {
 /* Singleton Stuff */

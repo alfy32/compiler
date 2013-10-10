@@ -12,3 +12,16 @@ int main(int argc, char** argv){
 
 	return 0;
 }
+
+int yyerror(const char *s)
+{
+	extern int yylineno;  
+    extern char *yytext; 
+    
+	std::cout << "ERROR: " << s << " at symbol \"" << yytext;
+    std::cout << "\" on line " << yylineno << std::endl;
+
+    exit(1);
+    
+    return 1;
+}
