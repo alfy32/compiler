@@ -27,6 +27,16 @@ extern int lineNumber;
     std::vector<std::pair<std::vector<std::string>, Type*> >* recordItem;
 }
 
+%type <const_val> ConstExpression
+%type <symbol_val> Expression
+%type <symbolVector_val> ExpressionList 
+%type <identList> IdentList
+%type <recordItem> RecordItem FormalParameters
+%type <int_val> LValue
+%type <type_val> Type SimpleType ArrayType RecordType
+%type <functionSig> FunctionSig
+%type <procedureSig> ProcedureSig
+
 %start Program
  
 %token <op> NEG_SYM
@@ -60,16 +70,6 @@ extern int lineNumber;
 %token <str_val>    CHAR_CONST_SYM
 %token <str_val>    STR_CONST_SYM
 
-%type <const_val> ConstExpression
-%type <symbol_val> Expression
-%type <symbolVector_val> ExpressionList 
-%type <identList> IdentList
-%type <recordItem> RecordItem FormalParameters
-%type <int_val> LValue
-%type <type_val> Type SimpleType ArrayType RecordType
-%type <functionSig> FunctionSig
-%type <procedureSig> ProcedureSig
-
 %right          NEG_SYM
 %left           MULTIPLY_SYM DIVIDE_SYM MOD_SYM
 %left           SUBTRACT_SYM ADD_SYM
@@ -80,7 +80,7 @@ extern int lineNumber;
 
 %%
 
-Program:        SubCDecl SubTDecl SubVDecl SubPFDecl Block DOT_SYM
+Program:        SubCDecl SubTDecl SubVDecl SubPFDecl Block DOT_SYM { SymbolTable::pop(); SymbolTable::pop(); }
                 ;
 
 SubCDecl:       ConstantDecl
@@ -110,15 +110,15 @@ SubConstDecl:   IDENT_SYM EQUAL_SYM ConstExpression SEMICOLON_SYM               
 
 /* 3.1.2 Procedure and Function Declarations */
 
-ProcedureDecl:  ProcedureSig FORWARD_SYM SEMICOLON_SYM    
-                | ProcedureSig Body SEMICOLON_SYM         
+ProcedureDecl:  ProcedureSig FORWARD_SYM SEMICOLON_SYM  { SymbolTable::pop(); }  
+                | ProcedureSig Body SEMICOLON_SYM       { SymbolTable::pop(); }  
                 ;
 
 ProcedureSig:   PROCEDURE_SYM IDENT_SYM L_PAREN_SYM FormalParameters R_PAREN_SYM SEMICOLON_SYM  { $$ = new Proc($2, $4); SymbolTable::procDecl($2, $$); }
                 ;
 
-FunctionDecl:   FunctionSig FORWARD_SYM SEMICOLON_SYM   { }
-                | FunctionSig Body SEMICOLON_SYM        { }
+FunctionDecl:   FunctionSig FORWARD_SYM SEMICOLON_SYM   { SymbolTable::pop(); }
+                | FunctionSig Body SEMICOLON_SYM        { SymbolTable::pop(); }
                 ;
 
 FunctionSig:    FUNCTION_SYM IDENT_SYM L_PAREN_SYM FormalParameters R_PAREN_SYM COLON_SYM Type SEMICOLON_SYM { $$ = new Func($2, $4, $7); SymbolTable::funcDecl($2, $$); }
@@ -217,8 +217,11 @@ WhileStatement: WHILE_SYM Expression DO_SYM StatementSequence END_SYM
 RepeatStatement: REPEAT_SYM StatementSequence UNTIL_SYM Expression
                 ;
 
-ForStatement:   FOR_SYM IDENT_SYM ASSIGNMENT_SYM Expression TO_SYM Expression DO_SYM StatementSequence END_SYM 
-                | FOR_SYM IDENT_SYM ASSIGNMENT_SYM Expression DOWNTO_SYM Expression DO_SYM StatementSequence END_SYM 
+ForStatement:   ForSig StatementSequence END_SYM          
+                ;
+ 
+ForSig:         FOR_SYM IDENT_SYM ASSIGNMENT_SYM Expression TO_SYM Expression DO_SYM        { SymbolTable::forStatement($2, $4, $6, "UP"); }
+                | FOR_SYM IDENT_SYM ASSIGNMENT_SYM Expression DOWNTO_SYM Expression DO_SYM  { SymbolTable::forStatement($2, $4, $6, "DOWN"); }
                 ;
 
 StopStatement:  STOP_SYM

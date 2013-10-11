@@ -81,7 +81,9 @@ public:
 	}
 
 	void print() {
-		std::cout << "String Const: " << name << " Value: " << val << std::endl;
+		std::cout << "\tString Const: " << std::endl
+				  << "\tName: " << name << std::endl
+				  << "\tValue: " << val << std::endl;
 	}
 };
 
@@ -98,7 +100,9 @@ public:
 	}
 
 	void print() {
-		std::cout << "Char Const: " << name << " Value: " << val << std::endl;
+		std::cout << "\tChar Const: " << std::endl
+				  << "\tName: " << name << std::endl
+				  << "\tValue: " << val << std::endl;
 	}
 };
 
@@ -114,7 +118,9 @@ public:
 	}
 
 	void print() {
-		std::cout << "Int Const: " << name << " Value: " << val << std::endl;
+		std::cout << "\tInt Const: " << std::endl
+			  	  << "\tName: " << name << std::endl
+			  	  << "\tValue: " << val << std::endl;
 	}
 };
 
@@ -151,7 +157,9 @@ public:
 	}
 
 	virtual void print() {
-		std::cout << "Simple Type: " << name << " Size: " << size << std::endl;
+		std::cout << "\tSimpleType:" << std::endl 
+				  << "\tName: " << name << std::endl
+				  << "\tSize: " << size << std::endl;
 	}
 };
 
@@ -185,14 +193,18 @@ public:
 	}
 
 	virtual void print() {
-		std::cout << "Record Type: " << std::endl;
+		std::cout << "\tRecord Type: " << std::endl
+				  << "\tName: " << this->name << std::endl
+				  << "\tSize: " << this->size << std::endl
+				  << "\tElements: " << std::endl;
 
-		// for(auto iter = recordMap.begin(); iter != recordMap.end(); iter++) {
-		// 	// auto thePair = iter->second;
-
-		// 	// std::cout << "  Offset: " << thePair.second; 
-		// 	// thePair.first->print();
-		// }
+		for(std::pair<std::string, std::pair<Type*, int> > pair : recordMap) {
+			std::cout << "\t\tName: " << pair.first << std::endl
+					  << "\t\tOffset: " << pair.second.second << std::endl
+					  << "\t\tStart Element Type Info *******" << std::endl;
+					  pair.second.first->print();
+			std::cout << "\t\tEnd Element Type Info *******" << std::endl;
+		}
 	}
 };
 
@@ -218,9 +230,20 @@ public:
 		this->low = dynamic_cast<Int*>(lower)->val;
 		this->upper = dynamic_cast<Int*>(up)->val;
 
+		//std::cout << "Array upper: " << this->upper << " Lower: " << this->low << std::endl;
+
 		this->size = type->size*(upper-low+1);
 
 		this->type = type;
+	}
+
+	virtual void print() {
+		std::cout << "\tArray Type:" << std::endl
+				  << "\tName: " << this->name << std::endl
+				  << "\tSize: " << this->size << std::endl
+				  << "\tLower Bound: " << this->low << " Upper Bound: " << this->upper << std::endl
+				  << "\tArray Address: " << this <<std::endl
+				  << "\tType: " << this->type << std::endl;
 	}
 };
 
@@ -253,6 +276,21 @@ public:
 			}
 		}
 		std::cout << std::endl;
+	}
+
+	virtual void print() {
+		std::cout << "\tFunction: " << std::endl
+				  << "\tLabel/Location: " << name << std::endl
+				  << "\tParameters start*********:" << std::endl;
+
+		int paramCount = 1;
+
+		for(std::pair<std::string, Type*> pair : signature) {
+			std::cout << "\tParam " << paramCount++ << std::endl;
+			pair.second->print();
+		}
+
+		std::cout << "\tParameters End*********:" << std::endl;
 	}	
 };
 
@@ -284,6 +322,11 @@ public:
 		}
 		std::cout << std::endl;
 	}	
+
+	virtual void print() {
+		std::cout << "\tProcedure: " << std::endl
+				  << "\tName/Label/Location: " << name << std::endl; 
+	}	
 };
 
 class Table {
@@ -296,8 +339,8 @@ public:
 	}
 
 	void add(std::string identifier, Symbol* symbol) {
-		std::cout << "Adding to table...\n ";
-		std::cout << "  Identifier: " << identifier << " Symbol: " << symbol << std::endl;
+		// std::cout << "Adding to table...\n ";
+		// std::cout << "  Identifier: " << identifier << " Symbol: " << symbol << std::endl;
 
 
 		if(tableMap.find(identifier) != tableMap.end()) {
@@ -317,12 +360,13 @@ public:
 	}
 
 	void print() {
-		std::cout << "Here is the table:\n";
+		std::cout << "Here is the table: \n";
 
 		std::map<std::string, Symbol*>::iterator iter;
 
 		for(iter = tableMap.begin(); iter != tableMap.end(); iter++) {
 			std::cout << " Name: " << iter->first << " Symbol: " << iter->second << std::endl;
+			iter->second->print();
 		}
 	}
 };
@@ -338,8 +382,8 @@ public:
 			symbolTableInstance = new SymbolTable;
 
 			symbolTableInstance->symbolTable.push_back(initializedMainTable());
-			std::cout << "Making inital Table...\n";
-			symbolTableInstance->symbolTable.back().print();
+
+			symbolTableInstance->symbolTable.push_back(Table());
 
 		}
 		return symbolTableInstance;
@@ -356,12 +400,12 @@ public:
 	}
 
 	static Symbol* lookup(std::string name) {
-		std::cout << "Looking up\n";
+		
 		SymbolTable* tableInstance = getInstance();
 
 		for(int i = tableInstance->symbolTable.size()-1; i >= 0; i--) {
 			Symbol* symbol = tableInstance->symbolTable[i].lookup(name);
-			std::cout << "Finding Symbol: " << i << " Name: " << name << " Symbol: " << symbol << std::endl;
+			// std::cout << "Finding Symbol: level " << i << " Name: " << name << " Symbol: " << symbol << std::endl;
 			if(symbol) {
 				return symbol;
 			}
@@ -373,6 +417,18 @@ public:
 		return NULL;
 	}
 
+	static void pop() {
+		// std::cout << "Popping Table...\n";
+		SymbolTable* tableInstance = getInstance();
+
+		std::cout << "*********** This is level: " << tableInstance->symbolTable.size()-1 << " **********" << std::endl;
+
+		tableInstance->symbolTable.back().print();
+
+		std::cout << "*********** We are popping the above table off the stack. **********" << std::endl;
+		tableInstance->symbolTable.pop_back();
+	}
+
 
 	static Table initializedMainTable() {
 		Table table;
@@ -381,15 +437,13 @@ public:
 		SimpleType* character = new SimpleType("char");
 		SimpleType* str = new SimpleType("string");
 		SimpleType* boolean = new SimpleType("boolean");
-
+		
 		table.add("integer", integer);
-		table.add("INTEGER", integer);
 		table.add("char", character);
-		table.add("CHAR", character);
 		table.add("string", str);
-		table.add("STRING", str);
 		table.add("boolean", boolean);
-		table.add("BOOLEAN", boolean);
+		table.add("true", new SimpleType("true"));
+		table.add("false", new SimpleType("false"));
 
 		return table;
 	}
@@ -405,71 +459,98 @@ public:
 	}
 
 	static void typeDecl(std::string identifier, Type* type) {
+		type->name = identifier;
 		add(identifier, type);
 	}
 
 	static void funcDecl(std::string identifier, Func* func) {
-		std::cout << "Adding Function..." << std::endl;
+		// std::cout << "Adding Function..." << std::endl;
 		add(identifier, func);
 
 		addNewScope(func);
 	}
-
+//std::vector<std::pair<std::string, Type*> > signature;
 	static void addNewScope(Func* func) {
 		SymbolTable* tableInstance = getInstance();
 
 		Table table;
-		std::cout << "Making new Table..." << std::endl;
 		tableInstance->symbolTable.push_back(table);
-		std::cout << "table made\n";
+
+		for(std::pair<std::string, Type*> pair : func->signature) {
+			add(pair.first, pair.second);
+		}
 	}
 
 	static void procDecl(std::string identifier, Proc* proc) {
 		add(identifier, proc);
+
+		addNewScope(proc);
+	}
+
+	static void addNewScope(Proc* proc) {
+		SymbolTable* tableInstance = getInstance();
+
+		Table table;		
+		tableInstance->symbolTable.push_back(table);
+		
+		for(std::pair<std::string, Type*> pair : proc->signature) {
+			add(pair.first, pair.second);
+		}
+	}
+//FOR_SYM IDENT_SYM ASSIGNMENT_SYM Expression TO_SYM Expression DO_SYM
+	static void forStatement(std::string identifier, Symbol* initalValue, Symbol* expr, std::string UpToOrDownTo) {
+		// SymbolTable* tableInstance = getInstance();
+
+		// Table table;
+		// tableInstance->symbolTable.push_back(table);
+
+		// std::cout << "Added new for scope...\n";
+
+		// add(identifier, initalValue);
 	}
 
 	static Symbol* expression(Symbol* left, void*, Symbol* right){
-		std::cout << "Expression: symbol, op, symbol" << std::endl;
+		// std::cout << "Expression: symbol, op, symbol" << std::endl;
 		return new Symbol("NO_NAME From expresssion");
 	}
 
 	static Symbol* expression(void*, Symbol* right){
-		std::cout << "Expression: op, symbol" << std::endl;
+		// std::cout << "Expression: op, symbol" << std::endl;
 		return new Symbol("NO_NAME From expresssion");
 	}
 
 	static Symbol* expressionLvalue(int){
-		std::cout << "Expression: int" << std::endl;
+		// std::cout << "Expression: int" << std::endl;
 		return new Symbol("NO_NAME From expresssion");
 	}
 
 	static Symbol* function_call(std::string identifier) {
-		std::cout << "Function Call: no params." << std::endl;
+		// std::cout << "Function Call: no params." << std::endl;
 		return new Symbol(identifier);
 	}
 
 	static Symbol* function_call(std::string identifier, std::vector<Symbol*>*) {
-		std::cout << "Function Call: has params." << std::endl;
+		// std::cout << "Function Call: has params." << std::endl;
 		return new Symbol(identifier);
 	}
 
 	static Symbol* chr(Symbol* symbol) {
-		std::cout << "CHR: " << std::endl;
+		// std::cout << "CHR: " << std::endl;
 		return new Symbol("CHR thingy");
 	}
 
 	static Symbol* ord(Symbol* symbol) {
-		std::cout << "ORD: " << std::endl;
+		// std::cout << "ORD: " << std::endl;
 		return new Symbol("ORD thingy");
 	}
 
 	static Symbol* pred(Symbol* symbol) {
-		std::cout << "PRED: " << std::endl;
+		// std::cout << "PRED: " << std::endl;
 		return new Symbol("PRED thingy");
 	}
 
 	static Symbol* succ(Symbol* symbol) {
-		std::cout << "SUCC: " << std::endl;
+		// std::cout << "SUCC: " << std::endl;
 		return new Symbol("SUCC thingy");
 	}
 
