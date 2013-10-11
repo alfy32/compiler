@@ -38,6 +38,7 @@ public:
 	}
 
 	Const(Const* left, std::string op, Const* right) {
+		
 		if(left->constType == right->constType) {
 			name = left->name;
 			constType = left->constType;
@@ -239,7 +240,6 @@ public:
 
 	virtual void print() {
 		std::cout << "\tArray Type:" << std::endl
-				  << "\tName: " << this->name << std::endl
 				  << "\tSize: " << this->size << std::endl
 				  << "\tLower Bound: " << this->low << " Upper Bound: " << this->upper << std::endl
 				  << "\tArray Address: " << this <<std::endl
@@ -437,13 +437,21 @@ public:
 		SimpleType* character = new SimpleType("char");
 		SimpleType* str = new SimpleType("string");
 		SimpleType* boolean = new SimpleType("boolean");
+		SimpleType* boolTrue = new SimpleType("true");
+		SimpleType* boolFalse = new SimpleType("false");
 		
 		table.add("integer", integer);
+		table.add("INTEGER", integer);
 		table.add("char", character);
+		table.add("CHAR", character);
 		table.add("string", str);
+		table.add("STRING", str);
 		table.add("boolean", boolean);
-		table.add("true", new SimpleType("true"));
-		table.add("false", new SimpleType("false"));
+		table.add("BOOLEAN", boolean);
+		table.add("true", boolTrue);
+		table.add("TRUE", boolTrue);
+		table.add("false", boolFalse);
+		table.add("FALSE", boolFalse);
 
 		return table;
 	}
@@ -455,6 +463,7 @@ public:
 	}
 
 	static void constDecl(std::string identifier, Const* constExpression) {
+		constExpression->name = identifier;
 		add(identifier, constExpression);
 	}
 
