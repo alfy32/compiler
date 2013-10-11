@@ -3,6 +3,8 @@
 
 #include "cpsl.h"
 
+extern int lineNumber;    
+
 %}
 
 %union {
@@ -16,10 +18,13 @@
     Symbol* symbol_val;
     Const* const_val;
     Type* type_val;
+    Func* functionSig;
+    Proc* procedureSig;
 
     std::vector<Symbol*>* symbolVector_val;
-    std::vector<Type*>* typeVector_val;
     std::vector<std::string>* identList;
+
+    std::vector<std::pair<std::vector<std::string>, Type*> >* recordItem;
 }
 
 %start Program
@@ -59,9 +64,11 @@
 %type <symbol_val> Expression
 %type <symbolVector_val> ExpressionList 
 %type <identList> IdentList
-%type <typeVector_val> RecordItem
+%type <recordItem> RecordItem FormalParameters
 %type <int_val> LValue
 %type <type_val> Type SimpleType ArrayType RecordType
+%type <functionSig> FunctionSig
+%type <procedureSig> ProcedureSig
 
 %right          NEG_SYM
 %left           MULTIPLY_SYM DIVIDE_SYM MOD_SYM
@@ -103,17 +110,23 @@ SubConstDecl:   IDENT_SYM EQUAL_SYM ConstExpression SEMICOLON_SYM               
 
 /* 3.1.2 Procedure and Function Declarations */
 
-ProcedureDecl:  PROCEDURE_SYM IDENT_SYM L_PAREN_SYM FormalParameters R_PAREN_SYM SEMICOLON_SYM FORWARD_SYM SEMICOLON_SYM    
-                | PROCEDURE_SYM IDENT_SYM L_PAREN_SYM FormalParameters R_PAREN_SYM SEMICOLON_SYM Body SEMICOLON_SYM         
+ProcedureDecl:  ProcedureSig FORWARD_SYM SEMICOLON_SYM    
+                | ProcedureSig Body SEMICOLON_SYM         
                 ;
 
-FunctionDecl:   FUNCTION_SYM IDENT_SYM L_PAREN_SYM FormalParameters R_PAREN_SYM COLON_SYM Type SEMICOLON_SYM FORWARD_SYM SEMICOLON_SYM
-                | FUNCTION_SYM IDENT_SYM L_PAREN_SYM FormalParameters R_PAREN_SYM COLON_SYM Type SEMICOLON_SYM Body SEMICOLON_SYM     
+ProcedureSig:   PROCEDURE_SYM IDENT_SYM L_PAREN_SYM FormalParameters R_PAREN_SYM SEMICOLON_SYM  { $$ = new Proc($2, $4); SymbolTable::procDecl($2, $$); }
                 ;
 
-FormalParameters: /* nothing */  
-                | SubVar IdentList COLON_SYM Type  
-                | SubVar IdentList COLON_SYM Type SEMICOLON_SYM FormalParameters 
+FunctionDecl:   FunctionSig FORWARD_SYM SEMICOLON_SYM   { }
+                | FunctionSig Body SEMICOLON_SYM        { }
+                ;
+
+FunctionSig:    FUNCTION_SYM IDENT_SYM L_PAREN_SYM FormalParameters R_PAREN_SYM COLON_SYM Type SEMICOLON_SYM { $$ = new Func($2, $4, $7); SymbolTable::funcDecl($2, $$); }
+                ;
+
+FormalParameters: /* nothing */                                                     { $$ = NULL; }
+                | SubVar IdentList COLON_SYM Type                                   { $$ = SymbolTable::makeRecordItem($2, $4, NULL); }
+                | SubVar IdentList COLON_SYM Type SEMICOLON_SYM FormalParameters    { $$ = SymbolTable::makeRecordItem($2, $4, $6); }
                 ;
 
 SubVar:         VAR_SYM
@@ -132,14 +145,14 @@ TypeDecl:       TYPE_SYM SubTypeDecl
                 ;
 
 SubTypeDecl:    IDENT_SYM EQUAL_SYM Type SEMICOLON_SYM                  { SymbolTable::typeDecl($1,$3); }            
-                | IDENT_SYM EQUAL_SYM Type SEMICOLON_SYM SubTypeDecl    { SymbolTable::typeDecl($1,$3); }
+                | SubTypeDecl IDENT_SYM EQUAL_SYM Type SEMICOLON_SYM    { SymbolTable::typeDecl($2,$4); }
 
 Type:           SimpleType      { $$ = $1; }
                 | RecordType    { $$ = $1; } 
                 | ArrayType     { $$ = $1; } 
                 ;
 
-SimpleType:     IDENT_SYM       { $$ = new SimpleType($1); }
+SimpleType:     IDENT_SYM       { $$ = (Type*)SymbolTable::lookup($1); }
                 ;
 
 RecordType:     RECORD_SYM RecordItem END_SYM  { $$ = new Record($2); }
@@ -158,11 +171,11 @@ IdentList:      IDENT_SYM                           { $$ = SymbolTable::makeIden
 
 /* 3.1.4 Variable Declarations */
 
-VarDecl:        VAR_SYM SubVarDecl
+VarDecl:        VAR_SYM SubVarDecl             
                 ;
 
-SubVarDecl:     IdentList COLON_SYM Type SEMICOLON_SYM
-                | IdentList COLON_SYM Type SEMICOLON_SYM SubVarDecl
+SubVarDecl:     IdentList COLON_SYM Type SEMICOLON_SYM                  { SymbolTable::addVar($1, $3); }
+                | SubVarDecl IdentList COLON_SYM Type SEMICOLON_SYM     { SymbolTable::addVar($2, $4); }
                 ;
 
 /* 3.2 CPSL Statements */
@@ -352,7 +365,7 @@ ConstExpression: ConstExpression OR_SYM ConstExpression             { $$ = new C
                 | INT_CONST_SYM                                     { $$ = new Int($1); }
                 | CHAR_CONST_SYM                                    { $$ = new Char($1); }
                 | STR_CONST_SYM                                     { $$ = new String($1); }
-                | IDENT_SYM                                         { $$ = new Const($1); }
+                | IDENT_SYM                                         { $$ = dynamic_cast<Const*>(SymbolTable::lookup($1)); }
                 ;
 
 
@@ -400,6 +413,15 @@ ConstExpr8:     INT_CONST_SYM
                 | CHAR_CONST_SYM
                 | STR_CONST_SYM
                 | IDENT_SYM 
-                ;*/
+                ;*/ 
 
 %%
+
+int yyerror(const char *s)
+{
+    std::cout << "ERROR line " << lineNumber << ": " << s << std::endl;
+
+    exit(1);
+    
+    return 1;
+}

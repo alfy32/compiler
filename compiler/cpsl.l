@@ -6,7 +6,7 @@
 
 extern YYSTYPE yylval;
 
-int yyLineCount = 1;
+int lineNumber = 1;
 
 bool verboseLex = false;
 
@@ -111,7 +111,7 @@ $.*						{ comment(); }
 
 [ \t]*					/* eat up whitespace */
 
-[\n]					{ endOfLine(); }
+[\n\r]					{ endOfLine(); lineNumber++; }
 
 
 <<EOF>>					{ endOfFile(); 	return 0;}
@@ -206,7 +206,7 @@ void comment() {
 
 void endOfLine() {
 	if(verboseLex) {
-		std::cout << "End of line: " << yylineno++ << std::endl;
+		std::cout << "End of line: " << lineNumber++ << std::endl;
 	}
 }
 
@@ -223,3 +223,4 @@ void unrecognized() {
 
 	yyerror("Scanner: Invalid Character.");
 }
+

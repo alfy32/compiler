@@ -164,21 +164,21 @@ public:
 		size = 0;
 	}
 
-	Record(std::vector<Type*>* types) {
-		name = "NO_NAME";
-		
+	Record(std::vector<std::pair<std::vector<std::string>, Type*> >* recordItems) {
+		name = "Record";
+
 		int offset = 0;
 
-		for(int i = 0; i < types->size(); i++) {
-			Type* theType = (*types)[i];
+		for(int i = 0; i < recordItems->size(); i++) {
+			std::pair<std::vector<std::string>, Type*> recordItem = (*recordItems)[i];
 
-			theType->print();
+			for(int j = 0; j < recordItem.first.size(); j++) {
+				std::pair<Type*, int> recordMapItem = std::make_pair(recordItem.second, offset);
 
-			std::pair<Type*, int> thePair = std::make_pair(theType, offset);
-
-			offset += theType->size;
-
-			recordMap[theType->name] = thePair;
+				offset += recordItem.second->size;
+				
+				recordMap[recordItem.first[j]] = recordMapItem;
+			}
 		}
 
 		size = offset;
@@ -212,19 +212,78 @@ public:
 		type = new Type();
 	}
 
-	Array(Const* lower, Const* upper, Type* type) {
-		name = "NO_NAME";
-		size = 0;
+	Array(Const* lower, Const* up, Type* type) {
+		this->name = "NO_NAME";
 
-		low = 0;
-		upper = 0;
+		this->low = dynamic_cast<Int*>(lower)->val;
+		this->upper = dynamic_cast<Int*>(up)->val;
 
-		type = new Type();
+		this->size = type->size*(upper-low+1);
 
-		// this->type = type;
-		// this->low = dynamic_cast<Int*>(lower)->val;
-		// this->upper = dynamic_cast<Int*>(upper)->val;
+		this->type = type;
 	}
+};
+
+class Func : public Symbol {
+public:
+	std::vector<std::pair<std::string, Type*> > signature;
+	Type* returnType;
+
+	bool isForward;
+
+	Func(std::string identifier, std::vector<std::pair<std::vector<std::string>, Type*> >* formalParams, Type* returnType) {
+		std::cout << "Function... Name: " << identifier << " ReturnType: " << returnType << " Params: ";
+
+		this->name = identifier;
+		this->returnType = returnType;
+
+		if(formalParams) {
+
+			for(int i = 0; i < formalParams->size(); i++) {
+				std::pair<std::vector<std::string>, Type*> formalParam = (*formalParams)[i];
+				Type* type = formalParam.second;
+				std::vector<std::string> identifiers = formalParam.first;
+
+				for(int j = 0; j < identifiers.size(); j++) {
+					std::cout << " Ident: " << identifiers[j] << " Type: " << type;
+					std::pair<std::string, Type*> thePair = std::make_pair(identifiers[j], type);
+
+					signature.push_back(thePair);
+				}
+			}
+		}
+		std::cout << std::endl;
+	}	
+};
+
+class Proc : public Symbol {
+public:
+	std::vector<std::pair<std::string, Type*> > signature;
+
+	bool isForward;
+
+	Proc(std::string identifier, std::vector<std::pair<std::vector<std::string>, Type*> >* formalParams) {
+		std::cout << "Procedure... Name: " << identifier << " Params: ";
+
+		this->name = identifier;
+
+		if(formalParams) {
+
+			for(int i = 0; i < formalParams->size(); i++) {
+				std::pair<std::vector<std::string>, Type*> formalParam = (*formalParams)[i];
+				Type* type = formalParam.second;
+				std::vector<std::string> identifiers = formalParam.first;
+
+				for(int j = 0; j < identifiers.size(); j++) {
+					std::cout << " Ident: " << identifiers[j] << " Type: " << type;
+					std::pair<std::string, Type*> thePair = std::make_pair(identifiers[j], type);
+
+					signature.push_back(thePair);
+				}
+			}
+		}
+		std::cout << std::endl;
+	}	
 };
 
 class Table {
@@ -233,22 +292,20 @@ public:
 
 
 	Table() {
-		tableMap["integer"] = new SimpleType("integer");
-		tableMap["char"] = new SimpleType("char");
-		tableMap["string"] = new SimpleType("string");
+		
 	}
 
-	void add(Symbol* symbol) {
-		std::cout << "Adding to table: ";
-		symbol->print();
+	void add(std::string identifier, Symbol* symbol) {
+		std::cout << "Adding to table...\n ";
+		std::cout << "  Identifier: " << identifier << " Symbol: " << symbol << std::endl;
 
 
-		if(tableMap.find(symbol->name) != tableMap.end()) {
-			std::cout << "We alread have the symbol (" << symbol->name << ") in the table. I quit!!!!" << std::endl;
+		if(tableMap.find(identifier) != tableMap.end()) {
+			std::cout << "We alread have the symbol (" << identifier << ") in the table. I quit!!!!" << std::endl;
 			exit(1);
 		}
 
-		this->tableMap[symbol->name] = symbol;
+		this->tableMap[identifier] = symbol;
 	}
 
 	Symbol* lookup(std::string name) {
@@ -256,6 +313,16 @@ public:
 			return tableMap.find(name)->second;
 		} else {
 			return NULL;
+		}
+	}
+
+	void print() {
+		std::cout << "Here is the table:\n";
+
+		std::map<std::string, Symbol*>::iterator iter;
+
+		for(iter = tableMap.begin(); iter != tableMap.end(); iter++) {
+			std::cout << " Name: " << iter->first << " Symbol: " << iter->second << std::endl;
 		}
 	}
 };
@@ -269,6 +336,11 @@ public:
 	static SymbolTable* getInstance() {
 		if(symbolTableInstance == NULL) {
 			symbolTableInstance = new SymbolTable;
+
+			symbolTableInstance->symbolTable.push_back(initializedMainTable());
+			std::cout << "Making inital Table...\n";
+			symbolTableInstance->symbolTable.back().print();
+
 		}
 		return symbolTableInstance;
 	}
@@ -277,23 +349,83 @@ public:
 public:
 	std::vector<Table> symbolTable; 
 
-	SymbolTable() {
-		Table newTable;
+	static void add(std::string identifier, Symbol* symbol) {
+		SymbolTable* tableInstance = getInstance();
 
-		symbolTable.push_back(newTable);
+		tableInstance->symbolTable.back().add(identifier, symbol);
+	}
+
+	static Symbol* lookup(std::string name) {
+		std::cout << "Looking up\n";
+		SymbolTable* tableInstance = getInstance();
+
+		for(int i = tableInstance->symbolTable.size()-1; i >= 0; i--) {
+			Symbol* symbol = tableInstance->symbolTable[i].lookup(name);
+			std::cout << "Finding Symbol: " << i << " Name: " << name << " Symbol: " << symbol << std::endl;
+			if(symbol) {
+				return symbol;
+			}
+		}
+		
+		std::cout << "The symbol(" << name << ") is not in the table so I will die." << std::endl;
+		exit(1);
+		
+		return NULL;
 	}
 
 
-	static void constDecl(std::string identifier, Const* constExpression) {
-		constExpression->name = identifier;
+	static Table initializedMainTable() {
+		Table table;
 
-		SymbolTable* tableInstance = getInstance();
-		tableInstance->symbolTable.back().add(constExpression);
+		SimpleType* integer = new SimpleType("integer");
+		SimpleType* character = new SimpleType("char");
+		SimpleType* str = new SimpleType("string");
+		SimpleType* boolean = new SimpleType("boolean");
+
+		table.add("integer", integer);
+		table.add("INTEGER", integer);
+		table.add("char", character);
+		table.add("CHAR", character);
+		table.add("string", str);
+		table.add("STRING", str);
+		table.add("boolean", boolean);
+		table.add("BOOLEAN", boolean);
+
+		return table;
+	}
+
+	static void addVar(std::vector<std::string>* identList, Type* type) {
+		for(int i = 0; i < identList->size(); i++) {
+			add((*identList)[i], type);
+		}
+	}
+
+	static void constDecl(std::string identifier, Const* constExpression) {
+		add(identifier, constExpression);
 	}
 
 	static void typeDecl(std::string identifier, Type* type) {
-		std::cout << "Type Decl: " << identifier << " Type: ";
-		type->print();
+		add(identifier, type);
+	}
+
+	static void funcDecl(std::string identifier, Func* func) {
+		std::cout << "Adding Function..." << std::endl;
+		add(identifier, func);
+
+		addNewScope(func);
+	}
+
+	static void addNewScope(Func* func) {
+		SymbolTable* tableInstance = getInstance();
+
+		Table table;
+		std::cout << "Making new Table..." << std::endl;
+		tableInstance->symbolTable.push_back(table);
+		std::cout << "table made\n";
+	}
+
+	static void procDecl(std::string identifier, Proc* proc) {
+		add(identifier, proc);
 	}
 
 	static Symbol* expression(Symbol* left, void*, Symbol* right){
@@ -375,19 +507,14 @@ public:
 		return identList;
 	}
 
-	static std::vector<Type*>* makeRecordItem(std::vector<std::string>* identList, Type* type, std::vector<Type*>* recordItem) {
+	static std::vector<std::pair<std::vector<std::string>, Type*> >* makeRecordItem(std::vector<std::string>* identList, Type* type, std::vector<std::pair<std::vector<std::string>, Type*> >* recordItem) {
 		if(recordItem == NULL) {
-			recordItem = new std::vector<Type*>;
+			recordItem = new std::vector<std::pair<std::vector<std::string>, Type*> >;
 		}
 
-		for(int i = 0; i < identList->size(); i++) {
-			Type* newType = new Type(*type);
+		std::pair<std::vector<std::string>, Type*> thePair = std::make_pair(*identList, type);
 
-			newType->name = (*identList)[i];
-			
-
-			recordItem->push_back(newType);
-		}
+		recordItem->push_back(thePair);
 
 		return recordItem;
 	}
