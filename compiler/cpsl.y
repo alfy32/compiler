@@ -16,7 +16,7 @@ extern int lineNumber;
     void* keyword;
 
     Symbol* symbol_val;
-    Const* const_val;
+    Constant* const_val;
     Type* type_val;
     Func* functionSig;
     Proc* procedureSig;
@@ -25,14 +25,15 @@ extern int lineNumber;
     std::vector<std::string>* identList;
 
     std::vector<std::pair<std::vector<std::string>, Type*> >* recordItem;
+
+    std::vector<Expression*>* expressionList;
 }
 
 %type <const_val> ConstExpression
-%type <symbol_val> Expression
-%type <symbolVector_val> ExpressionList 
+%type <symbol_val> Expression LValue
+%type <expressionList> ExpressionList 
 %type <identList> IdentList
 %type <recordItem> RecordItem FormalParameters
-%type <int_val> LValue
 %type <type_val> Type SimpleType ArrayType RecordType
 %type <functionSig> FunctionSig
 %type <procedureSig> ProcedureSig
@@ -238,11 +239,11 @@ LValueList:      LValue
                 | LValue COMMA_SYM LValueList
                 ;
 
-WriteStatement: WRITE_SYM L_PAREN_SYM ExpressionList R_PAREN_SYM
+WriteStatement: WRITE_SYM L_PAREN_SYM ExpressionList R_PAREN_SYM { SymbolTable::write($3); }
                 ;
 
-ExpressionList: Expression                              { $$ = SymbolTable::makeSymbolVector($1, NULL); }
-                | Expression COMMA_SYM ExpressionList   { $$ = SymbolTable::makeSymbolVector($1, $3); }
+ExpressionList: Expression                              { $$ = SymbolTable::makeExpressionList($1, NULL); }
+                | Expression COMMA_SYM ExpressionList   { $$ = SymbolTable::makeExpressionList($1, $3); }
                 ;
 
 ProcedureCall: IDENT_SYM L_PAREN_SYM R_PAREN_SYM
@@ -279,9 +280,9 @@ Expression:     Expression OR_SYM Expression            { $$ = SymbolTable::expr
                 | LValue                                            { $$ = SymbolTable::expressionLvalue($1); }
                 // | ConstExpression
                 // I added this to make it work. Figure out how to fix better later. 
-                | INT_CONST_SYM     { $<const_val>$ = new Int($1);     }
-                | CHAR_CONST_SYM    { $<const_val>$ = new Char($1);    }
-                | STR_CONST_SYM     { $<const_val>$ = new String($1);  }
+                | INT_CONST_SYM     { $<const_val>$ = new IntegerConstant($1);     }
+                | CHAR_CONST_SYM    { $<const_val>$ = new CharacterConstant($1);    }
+                | STR_CONST_SYM     { $<const_val>$ = new StringConstant($1);  }
                 ;
 
 /*Expression:     NEG_SYM Expression
@@ -334,8 +335,8 @@ Expression9:    IDENT_SYM L_PAREN_SYM ExpressionList R_PAREN_SYM
                 ;*/
 
 
-LValue:         IDENT_SYM                       { $$ = 12; }
-                | IDENT_SYM SubLValueStar       { $$ = 13; }
+LValue:         IDENT_SYM                       { $$ = SymbolTable::lookup($1); }
+                | IDENT_SYM SubLValueStar       { $$ = SymbolTable::lookup($1); }
               /*  | IDENT_SYM DOT_SYM IDENT_SYM */
                 /*| LValue DOT_SYM LValue*/
                 /*| IDENT_SYM L_BRACKET_SYM Expression R_BRACKET_SYM*/
@@ -349,26 +350,26 @@ SubLValue:      DOT_SYM IDENT_SYM                           { $<int_val>$ = 12; 
                 | L_BRACKET_SYM Expression R_BRACKET_SYM    { $<int_val>$ = 12; }
                 ;
 
-ConstExpression: ConstExpression OR_SYM ConstExpression             { $$ = new Const($1,"|",$3); }
-                | ConstExpression AND_SYM ConstExpression           { $$ = new Const($1,"&",$3); }
-                | ConstExpression EQUAL_SYM ConstExpression         { $$ = new Const($1,"=",$3); }
-                | ConstExpression NOT_EQUAL_SYM ConstExpression     { $$ = new Const($1,"<>",$3); }
-                | ConstExpression LT_EQ_SYM ConstExpression         { $$ = new Const($1,"<=",$3); }
-                | ConstExpression GT_EQ_SYM ConstExpression         { $$ = new Const($1,">=",$3); }
-                | ConstExpression LT_SYM ConstExpression            { $$ = new Const($1,"<",$3); }
-                | ConstExpression GT_SYM ConstExpression            { $$ = new Const($1,">",$3); }
-                | ConstExpression ADD_SYM ConstExpression           { $$ = new Const($1,"+",$3); }
-                | ConstExpression SUBTRACT_SYM ConstExpression      { $$ = new Const($1,"-",$3); }
-                | ConstExpression MULTIPLY_SYM ConstExpression      { $$ = new Const($1,"*",$3); }
-                | ConstExpression DIVIDE_SYM ConstExpression        { $$ = new Const($1,"/",$3); }
-                | ConstExpression MOD_SYM ConstExpression           { $$ = new Const($1,"%",$3); }
-                | TILDE_SYM ConstExpression                         { $$ = new Const("~", $2); }
-                | NEG_SYM ConstExpression                           { $$ = new Const("neg", $2); }
+ConstExpression: ConstExpression OR_SYM ConstExpression             { $$ = SymbolTable::evalConstant($1,"|",$3); }
+                | ConstExpression AND_SYM ConstExpression           { $$ = SymbolTable::evalConstant($1,"&",$3); }
+                | ConstExpression EQUAL_SYM ConstExpression         { $$ = SymbolTable::evalConstant($1,"=",$3); }
+                | ConstExpression NOT_EQUAL_SYM ConstExpression     { $$ = SymbolTable::evalConstant($1,"<>",$3); }
+                | ConstExpression LT_EQ_SYM ConstExpression         { $$ = SymbolTable::evalConstant($1,"<=",$3); }
+                | ConstExpression GT_EQ_SYM ConstExpression         { $$ = SymbolTable::evalConstant($1,">=",$3); }
+                | ConstExpression LT_SYM ConstExpression            { $$ = SymbolTable::evalConstant($1,"<",$3); }
+                | ConstExpression GT_SYM ConstExpression            { $$ = SymbolTable::evalConstant($1,">",$3); }
+                | ConstExpression ADD_SYM ConstExpression           { $$ = SymbolTable::evalConstant($1,"+",$3); }
+                | ConstExpression SUBTRACT_SYM ConstExpression      { $$ = SymbolTable::evalConstant($1,"-",$3); }
+                | ConstExpression MULTIPLY_SYM ConstExpression      { $$ = SymbolTable::evalConstant($1,"*",$3); }
+                | ConstExpression DIVIDE_SYM ConstExpression        { $$ = SymbolTable::evalConstant($1,"/",$3); }
+                | ConstExpression MOD_SYM ConstExpression           { $$ = SymbolTable::evalConstant($1,"%",$3); }
+                | TILDE_SYM ConstExpression                         { $$ = SymbolTable::evalConstant("~", $2); }
+                | NEG_SYM ConstExpression                           { $$ = SymbolTable::evalConstant("neg", $2); }
                 | L_PAREN_SYM ConstExpression R_PAREN_SYM           { $$ = $2; }
-                | INT_CONST_SYM                                     { $$ = new Int($1); }
-                | CHAR_CONST_SYM                                    { $$ = new Char($1); }
-                | STR_CONST_SYM                                     { $$ = new String($1); }
-                | IDENT_SYM                                         { $$ = dynamic_cast<Const*>(SymbolTable::lookup($1)); }
+                | INT_CONST_SYM                                     { $$ = new IntegerConstant($1); }
+                | CHAR_CONST_SYM                                    { $$ = new CharacterConstant($1); }
+                | STR_CONST_SYM                                     { $$ = new StringConstant($1); }
+                | IDENT_SYM                                         { $$ = SymbolTable::lookupConstant($1); }
                 ;
 
 

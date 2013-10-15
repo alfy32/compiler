@@ -28,16 +28,16 @@ public:
 
 enum ConstType { CONST_INT, CONST_STR, CONST_CHAR, UNKNOWN_TYPE }; 
 
-class Const : public Symbol {
+class Constant : public Symbol {
 public:
 	ConstType constType;
 
-	Const() {
+	Constant() {
 		name = "NO_NAME";
 		constType = UNKNOWN_TYPE;
 	}
 
-	Const(Const* left, std::string op, Const* right) {
+	Constant(Constant* left, std::string op, Constant* right) {
 		
 		if(left->constType == right->constType) {
 			name = left->name;
@@ -49,7 +49,7 @@ public:
 		name = "Operation";
 	}
 
-	Const(std::string op, Const* right) {
+	Constant(std::string op, Constant* right) {
 		if(right->constType == CONST_INT) {
 			name = right->name;
 			constType = right->constType;
@@ -59,21 +59,21 @@ public:
 		}
 	}
 
-	Const(std::string identifier) {
+	Constant(std::string identifier) {
 		name = identifier;
 		constType = UNKNOWN_TYPE;
 	}
 
 	virtual void print() {
-		std::cout << "Const: " << name << " Type: " << constType << std::endl;
+		std::cout << "Constant: " << name << " Type: " << constType << std::endl;
 	}
 };
 
-class String : public Const {
+class StringConstant : public Constant {
 public:
 	std::string val;
 
-	String(char* value) {
+	StringConstant(char* value) {
 		std::string makeValue(value);
 		val = makeValue;
 
@@ -82,17 +82,17 @@ public:
 	}
 
 	void print() {
-		std::cout << "\tString Const: " << std::endl
+		std::cout << "\tString Constant: " << std::endl
 				  << "\tName: " << name << std::endl
 				  << "\tValue: " << val << std::endl;
 	}
 };
 
-class Char : public Const {
+class CharacterConstant : public Constant {
 public:
 	std::string val;
 
-	Char(char* value) {
+	CharacterConstant(char* value) {
 		std::string makeValue(value);
 		val = makeValue;
 
@@ -100,18 +100,25 @@ public:
 		constType = CONST_CHAR;
 	}
 
+	CharacterConstant(std::string value) {
+		val = value;
+
+		name = "NO_NAME";
+		constType = CONST_CHAR;
+	}
+
 	void print() {
-		std::cout << "\tChar Const: " << std::endl
+		std::cout << "\tCharacter Constant: " << std::endl
 				  << "\tName: " << name << std::endl
 				  << "\tValue: " << val << std::endl;
 	}
 };
 
-class Int : public Const {
+class IntegerConstant : public Constant {
 public:
 	int val;
 
-	Int(int value) {
+	IntegerConstant(int value) {
 		val = value;
 
 		name = "NO_NAME";
@@ -119,10 +126,25 @@ public:
 	}
 
 	void print() {
-		std::cout << "\tInt Const: " << std::endl
+		std::cout << "\tInteger Constant: " << std::endl
 			  	  << "\tName: " << name << std::endl
 			  	  << "\tValue: " << val << std::endl;
 	}
+};
+
+class Boolean : public Constant {
+public:
+	bool val;
+
+	Boolean(bool value) {
+		this->val = value;
+	}
+
+	void print() {
+		std::cout << "\tBoolean Constant: " << std::endl
+		  	      << "\tValue: " << val << std::endl;	
+	}
+
 };
 
 class Type : public Symbol {
@@ -225,11 +247,11 @@ public:
 		type = new Type();
 	}
 
-	Array(Const* lower, Const* up, Type* type) {
+	Array(Constant* lower, Constant* up, Type* type) {
 		this->name = "NO_NAME";
 
-		this->low = dynamic_cast<Int*>(lower)->val;
-		this->upper = dynamic_cast<Int*>(up)->val;
+		this->low = dynamic_cast<IntegerConstant*>(lower)->val;
+		this->upper = dynamic_cast<IntegerConstant*>(up)->val;
 
 		//std::cout << "Array upper: " << this->upper << " Lower: " << this->low << std::endl;
 
@@ -327,6 +349,20 @@ public:
 		std::cout << "\tProcedure: " << std::endl
 				  << "\tName/Label/Location: " << name << std::endl; 
 	}	
+};
+
+class Expression {
+public:
+	Type* type;
+	int location;
+
+	Expression(int location) {
+		this->location = location;
+	}
+
+	int getLocation() {
+		return this->location;
+	}
 };
 
 class Table {
@@ -462,7 +498,7 @@ public:
 		}
 	}
 
-	static void constDecl(std::string identifier, Const* constExpression) {
+	static void constDecl(std::string identifier, Constant* constExpression) {
 		constExpression->name = identifier;
 		add(identifier, constExpression);
 	}
@@ -518,6 +554,138 @@ public:
 		// add(identifier, initalValue);
 	}
 
+	static Constant* evalConstant(Constant* left, std::string oper, Constant* right) {
+		if(left->constType == right->constType) {
+			switch(left->constType)
+			{
+			case CONST_INT:
+				evalIntConstant(left, oper, right);
+				break;
+			case CONST_CHAR:
+				evalCharConstant(left, oper, right);
+				break;
+			case CONST_STR:
+				evalStrConstant(left, oper, right);
+				break;
+			default:
+				std::cout << "This is and unknown constant type. I quit.\n";
+				exit(1);
+			}
+		} else {
+			std::cout << "We quit. You are trying to add constants of different types. \n";
+			exit(1);
+		}
+	}
+
+	static Constant* evalConstant(std::string oper, Constant* right) {
+		if(right->constType == CONST_INT) {
+			IntegerConstant* value = dynamic_cast<IntegerConstant*>(right);
+
+			if(oper == "~") {
+				return new Boolean(!value->val);
+			} else if(oper == "neg") {
+				return new IntegerConstant(-value->val);
+			}
+		}
+
+		std::cout << "I don't know how to evaluate this constant.\n";
+		exit(1);
+	}
+
+	static Constant* evalIntConstant(Constant* left, std::string oper, Constant* right) {
+		int leftValue = dynamic_cast<IntegerConstant*>(left)->val;
+		int rightValue = dynamic_cast<IntegerConstant*>(right)->val;
+
+		if(oper == "|") {
+			return new Boolean(leftValue || rightValue);
+		} else if(oper == "&") {
+			return new Boolean(leftValue && rightValue);
+		}  else if(oper == "=") {
+			return new Boolean(leftValue == rightValue);
+		} else if(oper == "<>") {
+			return new Boolean(leftValue != rightValue);
+		} else if(oper == "<=") {
+			return new Boolean(leftValue <= rightValue);
+		} else if(oper == ">=") {
+			return new Boolean(leftValue >= rightValue);
+		} else if(oper == "<") {
+			return new Boolean(leftValue < rightValue);
+		} else if(oper == ">") {
+			return new Boolean(leftValue > rightValue);
+		} else if(oper == "+") {
+			return new IntegerConstant(leftValue + rightValue);
+		} else if(oper == "-") {
+			return new IntegerConstant(leftValue - rightValue);
+		} else if(oper == "*") {
+			return new IntegerConstant(leftValue * rightValue);
+		} else if(oper == "/") {
+			return new IntegerConstant(leftValue / rightValue);
+		} else if(oper == "%") {
+			return new IntegerConstant(leftValue % rightValue);
+		} 
+
+		std::cout << "That was an invalid operator for integers. I quit.\n";
+		exit(1); 
+
+		return NULL;
+	}
+
+	static Constant* evalCharConstant(Constant* left, std::string oper, Constant* right) {
+		std::string leftValue = dynamic_cast<CharacterConstant*>(left)->val;
+		std::string rightValue = dynamic_cast<CharacterConstant*>(right)->val;
+
+		if(oper == "=") {
+			return new Boolean(leftValue == rightValue);
+		} else if(oper == "<>") {
+			return new Boolean(leftValue != rightValue);
+		} else if(oper == "<=") {
+			return new Boolean(leftValue <= rightValue);
+		} else if(oper == ">=") {
+			return new Boolean(leftValue >= rightValue);
+		} else if(oper == "<") {
+			return new Boolean(leftValue < rightValue);
+		} else if(oper == ">") {
+			return new Boolean(leftValue > rightValue);
+		} else if(oper == "+") {
+			return new CharacterConstant(leftValue + rightValue);
+		} 
+
+		std::cout << "That was an invalid operator for characters. I quit.\n";
+		exit(1); 
+
+		return NULL;
+	}
+
+	static Constant* evalStrConstant(Constant* left, std::string oper, Constant* right) {
+		std::string leftValue = dynamic_cast<StringConstant*>(left)->val;
+		std::string rightValue = dynamic_cast<StringConstant*>(right)->val;
+
+		if(oper == "=") {
+			return new Boolean(leftValue == rightValue);
+		} else if(oper == "<>") {
+			return new Boolean(leftValue != rightValue);
+		} else if(oper == "<=") {
+			return new Boolean(leftValue <= rightValue);
+		} else if(oper == ">=") {
+			return new Boolean(leftValue >= rightValue);
+		} else if(oper == "<") {
+			return new Boolean(leftValue < rightValue);
+		} else if(oper == ">") {
+			return new Boolean(leftValue > rightValue);
+		} else if(oper == "+") {
+			return new CharacterConstant(leftValue + rightValue);
+		} 
+
+		std::cout << "That was an invalid operator for strings. I quit.\n";
+		exit(1); 
+
+		return NULL;
+	}
+
+	static Constant* lookupConstant(std::string identifier) {
+		return dynamic_cast<Constant*>(lookup(identifier));
+	}
+
 	static Symbol* expression(Symbol* left, void*, Symbol* right){
 		// std::cout << "Expression: symbol, op, symbol" << std::endl;
 		return new Symbol("NO_NAME From expresssion");
@@ -528,9 +696,9 @@ public:
 		return new Symbol("NO_NAME From expresssion");
 	}
 
-	static Symbol* expressionLvalue(int){
+	static Symbol* expressionLvalue(Symbol* symbol){
 		// std::cout << "Expression: int" << std::endl;
-		return new Symbol("NO_NAME From expresssion");
+		return symbol;
 	}
 
 	static Symbol* function_call(std::string identifier) {
@@ -538,7 +706,7 @@ public:
 		return new Symbol(identifier);
 	}
 
-	static Symbol* function_call(std::string identifier, std::vector<Symbol*>*) {
+	static Symbol* function_call(std::string identifier, std::vector<Expression*>*) {
 		// std::cout << "Function Call: has params." << std::endl;
 		return new Symbol(identifier);
 	}
@@ -561,6 +729,18 @@ public:
 	static Symbol* succ(Symbol* symbol) {
 		// std::cout << "SUCC: " << std::endl;
 		return new Symbol("SUCC thingy");
+	}
+
+	static std::vector<Expression*>* makeExpressionList(Symbol* symbol, std::vector<Expression*>* expressions) {
+		Expression* expression = dynamic_cast<Expression*>(symbol);
+
+		if(expressions == NULL) {
+			expressions = new std::vector<Expression*>;
+		}
+
+		expressions->push_back(expression);
+
+		return expressions;
 	}
 
 	static std::vector<Symbol*>* makeSymbolVector(Symbol* symbol, std::vector<Symbol*>* symbols) {
@@ -608,6 +788,95 @@ public:
 
 		return recordItem;
 	}
+
+
+	///////////////////////// Initialize Assembly //////////////////////////////
+
+	static void initAssembly() {
+		std::cout << "main: "; //TODO: write main stuff here.
+	}
+
+	////////////////////////////////////////////////////////////////////////////
+
+	//////////////////////////// Read and Write ////////////////////////////////
+
+	static void write(std::vector<Expression*>* expressionList) {
+		for(Expression* expression: *expressionList) {
+			int location = lookup(expression);
+
+			writeInteger(location);
+		}
+	}
+
+	static void writeInteger(int location) {
+		std::cout << "li	$v0, 1" << std::endl
+				  << "mv	$a0, $" << location << std::endl
+				  << "syscall" << std::endl;
+	}
+
+	static void writeString(std::string label) {
+		std::cout << "li	$v0, 4" << std::endl
+				  << "mv	$a0, " << label << std::endl
+				  << "syscall" << std::endl;
+	}
+
+	static Expression* read(Expression* expression) {
+		int location = expression->getLocation();
+		return readInteger(location);
+	}
+
+	static Expression* readInteger(int location) {
+		std::cout << "li	$v0, 5" << std::endl
+				  << "syscall" << std::endl
+				  << "sw	$v0, $" << location << std::endl;
+	}
+
+	////////////////////////////////////////////////////////////////////////////
+
+	///////////////////////////// Expressoins //////////////////////////////////
+
+	static int currentRegister;
+
+	static int getRegister() {
+		return currentRegister++;
+	}
+
+	static int lookup(Expression* expression) {
+		//TODO: find the location of the expression.
+		return 0;
+	}
+
+	static std::pair<int,int> lookupExpression(std::string name) {
+		int location, offset;
+		//TODO: find the location given a string.
+		return std::make_pair(location, offset);
+	}
+
+	static Expression* eval(Expression* left, Expression* right, std::string operation) {
+		int leftLocation = lookup(left);
+		int rightLocation = lookup(right);
+		int resultLocation = getRegister();
+
+		std::cout << operation << " $" << resultLocation
+			  	  << ", $" << leftLocation 
+			  	  << ", $" << rightLocation
+			  	  << std::endl;
+
+		return new Expression(resultLocation);
+	}
+
+	static Expression* load(std::string name) {
+		std::pair<int, int> offset = lookupExpression(name);
+		int resultLocation = getRegister();
+		std::cout << "lw $" << resultLocation
+				  << ", $" << offset.second
+				  << "(" << offset.first << ")"
+				  << std::endl;
+
+		return new Expression(resultLocation); 
+	}
+
+	////////////////////////////////////////////////////////////////////////////
 };
 
 #endif

@@ -38,8 +38,10 @@ clean:
 tar: clean
 	tar -cvzf alanCompiler.tar ../compiler/*
 
-test: test.cpp
-	g++ -std=c++11 test.cpp -o test.o
+test: all
+	./cpsl test/test_expressions
+	./cpsl test/test_personnel
+	./cpsl test/test_factorial
 
 lex: cpsl.l
 	flex -f cpsl.l
