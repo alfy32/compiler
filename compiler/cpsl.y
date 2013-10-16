@@ -20,6 +20,7 @@ extern int lineNumber;
     Type* type_val;
     Func* functionSig;
     Proc* procedureSig;
+    Expression* expression;
 
     std::vector<Symbol*>* symbolVector_val;
     std::vector<std::string>* identList;
@@ -30,7 +31,7 @@ extern int lineNumber;
 }
 
 %type <const_val> ConstExpression
-%type <symbol_val> Expression LValue
+%type <expression> Expression LValue
 %type <expressionList> ExpressionList 
 %type <identList> IdentList
 %type <recordItem> RecordItem FormalParameters
@@ -255,21 +256,21 @@ NullStatement:
 
 /* 3.3 Expressions */
 
-Expression:     Expression OR_SYM Expression            { $$ = SymbolTable::expression($1, $2, $3); }
-                | Expression AND_SYM Expression         { $$ = SymbolTable::expression($1, $2, $3); }
-                | Expression EQUAL_SYM Expression       { $$ = SymbolTable::expression($1, $2, $3); }
-                | Expression NOT_EQUAL_SYM Expression   { $$ = SymbolTable::expression($1, $2, $3); }
-                | Expression LT_EQ_SYM Expression       { $$ = SymbolTable::expression($1, $2, $3); }
-                | Expression GT_EQ_SYM Expression       { $$ = SymbolTable::expression($1, $2, $3); }
-                | Expression LT_SYM Expression          { $$ = SymbolTable::expression($1, $2, $3); }
-                | Expression GT_SYM Expression          { $$ = SymbolTable::expression($1, $2, $3); }
-                | Expression ADD_SYM Expression         { $$ = SymbolTable::expression($1, $2, $3); }
-                | Expression SUBTRACT_SYM Expression    { $$ = SymbolTable::expression($1, $2, $3); }
-                | Expression MULTIPLY_SYM Expression    { $$ = SymbolTable::expression($1, $2, $3); }
-                | Expression DIVIDE_SYM Expression      { $$ = SymbolTable::expression($1, $2, $3); }
-                | Expression MOD_SYM Expression         { $$ = SymbolTable::expression($1, $2, $3); }
-                | TILDE_SYM Expression                  { $$ = SymbolTable::expression($1, $2); }
-                | NEG_SYM Expression                    { $$ = SymbolTable::expression($1, $2); }
+Expression:     Expression OR_SYM Expression            { $$ = SymbolTable::expression($1, "or", $3); }
+                | Expression AND_SYM Expression         { $$ = SymbolTable::expression($1, "and", $3); }
+                | Expression EQUAL_SYM Expression       { $$ = SymbolTable::expression($1, "equal", $3); }
+                | Expression NOT_EQUAL_SYM Expression   { $$ = SymbolTable::expression($1, "<>", $3); }
+                | Expression LT_EQ_SYM Expression       { $$ = SymbolTable::expression($1, "<=", $3); }
+                | Expression GT_EQ_SYM Expression       { $$ = SymbolTable::expression($1, ">=", $3); }
+                | Expression LT_SYM Expression          { $$ = SymbolTable::expression($1, "<", $3); }
+                | Expression GT_SYM Expression          { $$ = SymbolTable::expression($1, ">", $3); }
+                | Expression ADD_SYM Expression         { $$ = SymbolTable::expression($1, "add", $3); }
+                | Expression SUBTRACT_SYM Expression    { $$ = SymbolTable::expression($1, "sub", $3); }
+                | Expression MULTIPLY_SYM Expression    { $$ = SymbolTable::expression($1, "mult", $3); }
+                | Expression DIVIDE_SYM Expression      { $$ = SymbolTable::expression($1, "div", $3); }
+                | Expression MOD_SYM Expression         { $$ = SymbolTable::expression($1, "mod", $3); }
+                | TILDE_SYM Expression                  { $$ = SymbolTable::expression("~", $2); }
+                | NEG_SYM Expression                    { $$ = SymbolTable::expression("Neg", $2); }
                 | L_PAREN_SYM Expression R_PAREN_SYM    { $$ = $2; }
                 | IDENT_SYM L_PAREN_SYM R_PAREN_SYM     { $$ = SymbolTable::function_call($1); }
                 | IDENT_SYM L_PAREN_SYM ExpressionList R_PAREN_SYM  { $$ = SymbolTable::function_call($1, $3); }
@@ -280,7 +281,7 @@ Expression:     Expression OR_SYM Expression            { $$ = SymbolTable::expr
                 | LValue                                            { $$ = SymbolTable::expressionLvalue($1); }
                 // | ConstExpression
                 // I added this to make it work. Figure out how to fix better later. 
-                | INT_CONST_SYM     { $<const_val>$ = new IntegerConstant($1);     }
+                | INT_CONST_SYM     { $$ = SymbolTable::integerConstToExpression($1);     }
                 | CHAR_CONST_SYM    { $<const_val>$ = new CharacterConstant($1);    }
                 | STR_CONST_SYM     { $<const_val>$ = new StringConstant($1);  }
                 ;
@@ -335,8 +336,8 @@ Expression9:    IDENT_SYM L_PAREN_SYM ExpressionList R_PAREN_SYM
                 ;*/
 
 
-LValue:         IDENT_SYM                       { $$ = SymbolTable::lookup($1); }
-                | IDENT_SYM SubLValueStar       { $$ = SymbolTable::lookup($1); }
+LValue:         IDENT_SYM                       { $$ = SymbolTable::lValueToExpression($1); }
+                | IDENT_SYM SubLValueStar       { $$ = SymbolTable::lValueToExpression($1); }
               /*  | IDENT_SYM DOT_SYM IDENT_SYM */
                 /*| LValue DOT_SYM LValue*/
                 /*| IDENT_SYM L_BRACKET_SYM Expression R_BRACKET_SYM*/

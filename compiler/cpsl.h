@@ -5,6 +5,7 @@
 #include <string>
 
 #include "Symbol.hpp"
+#include "SymbolTable.hpp"
 
 
 int yyerror(const char*);
