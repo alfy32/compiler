@@ -34,7 +34,7 @@ extern int lineNumber;
 
 %type <const_val> ConstExpression
 %type <expression> Expression 
-%type <variable>LValue
+%type <variable> LValue
 %type <expressionList> ExpressionList 
 %type <variableList> LValueList
 %type <identList> IdentList
@@ -193,17 +193,17 @@ StatementSequence: Statement
                 | Statement SEMICOLON_SYM StatementSequence     
                 ;
 
-Statement:      Assignemnt          { SymbolTable::endStatement(); }
-                | IfStatement       { SymbolTable::endStatement(); }
-                | WhileStatement    { SymbolTable::endStatement(); }
-                | RepeatStatement   { SymbolTable::endStatement(); }
-                | ForStatement      { SymbolTable::endStatement(); }
-                | StopStatement     { SymbolTable::endStatement(); }
-                | ReturnStatement   { SymbolTable::endStatement(); }
+Statement:      Assignemnt          
+                | IfStatement       
+                | WhileStatement    
+                | RepeatStatement   
+                | ForStatement      
+                | StopStatement     
+                | ReturnStatement   
                 | ReadStatement     { SymbolTable::endStatement(); }
                 | WriteStatement    { SymbolTable::endStatement(); }
-                | ProcedureCall     { SymbolTable::endStatement(); }
-                | NullStatement     { SymbolTable::endStatement(); }
+                | ProcedureCall     
+                | NullStatement     
                 ;
 
 Assignemnt:     LValue ASSIGNMENT_SYM Expression 
@@ -226,11 +226,11 @@ WhileStatement: WHILE_SYM Expression DO_SYM StatementSequence END_SYM
 RepeatStatement: REPEAT_SYM StatementSequence UNTIL_SYM Expression
                 ;
 
-ForStatement:   ForSig StatementSequence END_SYM          
+ForStatement:   ForSig StatementSequence END_SYM 
                 ;
- 
-ForSig:         FOR_SYM IDENT_SYM ASSIGNMENT_SYM Expression TO_SYM Expression DO_SYM        { SymbolTable::forStatement($2, $4, $6, "UP"); }
-                | FOR_SYM IDENT_SYM ASSIGNMENT_SYM Expression DOWNTO_SYM Expression DO_SYM  { SymbolTable::forStatement($2, $4, $6, "DOWN"); }
+
+ForSig:         FOR_SYM IDENT_SYM ASSIGNMENT_SYM Expression TO_SYM Expression DO_SYM        //{ SymbolTable::forStatement($2, $4, $6, "UP"); }
+                | FOR_SYM IDENT_SYM ASSIGNMENT_SYM Expression DOWNTO_SYM Expression DO_SYM // { SymbolTable::forStatement($2, $4, $6, "DOWN"); }
                 ;
 
 StopStatement:  STOP_SYM
@@ -291,6 +291,7 @@ Expression:     Expression OR_SYM Expression            { $$ = SymbolTable::expr
                 | INT_CONST_SYM     { $$ = SymbolTable::integerConstToExpression($1); }
                 | CHAR_CONST_SYM    { $$ = SymbolTable::charConstToExpression($1); }
                 | STR_CONST_SYM     { $$ = SymbolTable::stringConstToExpression($1); }
+                | IDENT_SYM         { std::cout << "This doesn't work right now......" << std::endl; $$ = SymbolTable::identToExpression($1); }
                 ;
 
 /*Expression:     NEG_SYM Expression
@@ -350,12 +351,12 @@ LValue:         IDENT_SYM                       { $$ = SymbolTable::makeLvalue($
                 /*| IDENT_SYM L_BRACKET_SYM Expression R_BRACKET_SYM*/
                 ;
 
-SubLValueStar:  SubLValue                       { $<int_val>$ = 12; }
-                | SubLValue SubLValueStar       { $<int_val>$ = 12; }
+SubLValueStar:  SubLValue                       
+                | SubLValue SubLValueStar       
                 ;
 
-SubLValue:      DOT_SYM IDENT_SYM                           { $<int_val>$ = 12; }
-                | L_BRACKET_SYM Expression R_BRACKET_SYM    { $<int_val>$ = 12; }
+SubLValue:      DOT_SYM IDENT_SYM                          
+                | L_BRACKET_SYM Expression R_BRACKET_SYM    
                 ;
 
 ConstExpression: ConstExpression OR_SYM ConstExpression             { $$ = SymbolTable::evalConstant($1,"|",$3); }

@@ -33,6 +33,7 @@ clean:
 
 	rm -f cpsl.tab*
 	rm -f cpsl.output
+	rm -f cpsl_verbose.output
 
 	rm -f cpsl
 

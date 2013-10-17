@@ -1,5 +1,7 @@
 #include "SymbolTable.hpp"
 
+extern bool verbose;
+
 
 SymbolTable* SymbolTable::symbolTableInstance = NULL;
 
@@ -45,13 +47,14 @@ Symbol* Table::lookup(std::string name) {
 }
 
 void Table::print() {
-	std::cout << "Here is the table: \n";
+	SymbolTable::getInstance()->getVerboseStream() << "Here is the table: \n";
 
 	std::map<std::string, Symbol*>::iterator iter;
 
 	for(iter = tableMap.begin(); iter != tableMap.end(); iter++) {
-		std::cout << " Name: " << iter->first << " Symbol: " << iter->second << std::endl;
-		iter->second->print();
+		std::ostream& out = SymbolTable::getInstance()->getVerboseStream();
+		out << " Name: " << iter->first << " Symbol: " << iter->second << std::endl;
+		iter->second->print(out);
 	}
 }
 
@@ -77,6 +80,8 @@ SymbolTable* SymbolTable::getInstance() {
 
 void SymbolTable::openFile() {
 	outputFile.open("cpsl.asm");
+	if(!verbose)
+		verboseFile.open("cpsl_verbose.output");
 }
 
 std::ofstream& SymbolTable::getFileStream() {
@@ -87,6 +92,14 @@ std::ostream& SymbolTable::getErrorStream() {
 	return std::cout;
 }
 
+std::ostream& SymbolTable::getVerboseStream() {
+	if(verbose) {
+		return std::cout;
+	} else {
+		return verboseFile;
+	}
+}
+
 void SymbolTable::add(std::string identifier, Symbol* symbol) {
 	SymbolTable* tableInstance = getInstance();
 
@@ -94,10 +107,10 @@ void SymbolTable::add(std::string identifier, Symbol* symbol) {
 }
 
 Symbol* SymbolTable::lookup(std::string name) {
-	
-	SymbolTable* tableInstance = getInstance();
+ 	SymbolTable* tableInstance = getInstance();
 
 	for(int i = tableInstance->symbolTable.size()-1; i >= 0; i--) {
+	
 		Symbol* symbol = tableInstance->symbolTable[i].lookup(name);
 		
 		if(symbol) {
@@ -114,11 +127,11 @@ Symbol* SymbolTable::lookup(std::string name) {
 void SymbolTable::pop() {
 	SymbolTable* tableInstance = getInstance();
 
-	std::cout << "*********** This is level: " << tableInstance->symbolTable.size()-1 << " **********" << std::endl;
+	getInstance()->getVerboseStream() << "*********** This is level: " << tableInstance->symbolTable.size()-1 << " **********" << std::endl;
 
 	tableInstance->symbolTable.back().print();
 
-	std::cout << "*********** We are popping the above table off the stack. **********" << std::endl;
+	getInstance()->getVerboseStream() << "*********** We are popping the above table off the stack. **********" << std::endl;
 	tableInstance->symbolTable.pop_back();
 }
 
@@ -339,7 +352,18 @@ Constant* SymbolTable::evalStrConstant(Constant* left, std::string oper, Constan
 }
 
 Variable* SymbolTable::makeLvalue(std::string identifier) {
-	return dynamic_cast<Variable*>(lookup(identifier));
+	Symbol* symbol;
+
+	Variable* variable;
+	try {
+		variable = dynamic_cast<Variable*>(lookup(identifier));
+	}
+	catch (std::exception& e) {
+		std::cout << "Exception: " << e.what() << std::endl;
+		yyerror("We threw a bad_cast when making an lvalue.");
+	}
+
+	return variable;
 }
 
 Expression* SymbolTable::lValueToExpression(Variable* variable) {
@@ -386,6 +410,14 @@ Expression* SymbolTable::stringConstToExpression(std::string value) {
 	Expression* expression = new Expression(location);
 	expression->type = dynamic_cast<Type*>(lookup("string"));
 	return expression;
+}
+
+Expression* SymbolTable::identToExpression(std::string identifier) {
+	Symbol* symbol = lookup(identifier);
+
+	std::cout << "Figure out what to do here.................................................." << std::endl;
+
+	return new Expression(10);
 }
 
 Constant* SymbolTable::lookupConstant(std::string identifier) {

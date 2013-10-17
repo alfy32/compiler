@@ -2,6 +2,7 @@
 #define SYMBOL_HPP
 
 #include <iostream>
+#include <fstream>
 #include <deque>
 #include <map>
 #include <string>
@@ -13,7 +14,7 @@ public:
 
 	Symbol();
 	Symbol(std::string identifier);
-	virtual void print();
+	virtual void print(std::ostream&);
 };
 
 enum ConstType { CONST_INT, CONST_STR, CONST_CHAR, UNKNOWN_TYPE }; 
@@ -26,7 +27,7 @@ public:
 	Constant(Constant* left, std::string op, Constant* right);
 	Constant(std::string op, Constant* right);
 	Constant(std::string identifier);
-	virtual void print();
+	virtual void print(std::ostream&);
 };
 
 class StringConstant : public Constant {
@@ -34,7 +35,7 @@ public:
 	std::string val;
 
 	StringConstant(char* value);
-	virtual void print();
+	virtual void print(std::ostream&);
 };
 
 class CharacterConstant : public Constant {
@@ -43,7 +44,7 @@ public:
 
 	CharacterConstant(char* value);
 	CharacterConstant(std::string value);
-	virtual void print();
+	virtual void print(std::ostream&);
 };
 
 class IntegerConstant : public Constant {
@@ -51,7 +52,7 @@ public:
 	int val;
 
 	IntegerConstant(int value);
-	virtual void print();
+	virtual void print(std::ostream&);
 };
 
 class Boolean : public Constant {
@@ -59,7 +60,7 @@ public:
 	bool val;
 
 	Boolean(bool value);
-	virtual void print();
+	virtual void print(std::ostream&);
 };
 
 class Type : public Symbol {
@@ -68,7 +69,7 @@ public:
 
 	Type();
 	Type(std::string identifier);
-	virtual void print();
+	virtual void print(std::ostream&);
 };
 
 class SimpleType : public Type {
@@ -76,7 +77,7 @@ public:
 
 	SimpleType();
 	SimpleType(std::string identifier);
-	virtual void print();
+	virtual void print(std::ostream&);
 };
 
 class Variable : public Symbol {
@@ -85,7 +86,7 @@ public:
 	int location;
 
 	Variable(std::string name, Type* type, int location);
-	virtual void print();
+	virtual void print(std::ostream&);
 };
 
 class Record : public Type {
@@ -95,7 +96,7 @@ public:
 	Record();
 
 	Record(std::deque<std::pair<std::deque<std::string>, Type*> >* recordItems);
-	virtual void print();
+	virtual void print(std::ostream&);
 };
 
 class Array : public Type {
@@ -106,7 +107,7 @@ public:
 
 	Array();
 	Array(Constant* lower, Constant* up, Type* type);
-	virtual void print();
+	virtual void print(std::ostream&);
 };
 
 class Func : public Symbol {
@@ -117,7 +118,7 @@ public:
 	bool isForward;
 
 	Func(std::string identifier, std::deque<std::pair<std::deque<std::string>, Type*> >* formalParams, Type* returnType);
-	virtual void print();
+	virtual void print(std::ostream&);
 };
 
 class Proc : public Symbol {
@@ -127,7 +128,7 @@ public:
 	bool isForward;
 
 	Proc(std::string identifier, std::deque<std::pair<std::deque<std::string>, Type*> >* formalParams);
-	virtual void print();
+	virtual void print(std::ostream&);
 };
 
 

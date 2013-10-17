@@ -3,6 +3,7 @@
 
 #include <fstream>
 #include <deque>
+#include <exception>
 
 #include "Symbol.hpp"
 
@@ -41,10 +42,12 @@ public:
 /* Assembly file stuff */
 private:
 	std::ofstream outputFile;
+	std::ofstream verboseFile;
 public:
 	void openFile();
 	std::ofstream& getFileStream();
 	std::ostream& getErrorStream();
+	std::ostream& getVerboseStream();
 /* End Assembly file stuff */
 
 public:
@@ -78,6 +81,7 @@ public:
 	static Expression* integerConstToExpression(int value);
 	static Expression* charConstToExpression(std::string value);
 	static Expression* stringConstToExpression(std::string value);
+	static Expression* identToExpression(std::string identifier);
 	static Constant* lookupConstant(std::string identifier);
 	static Expression* expression(Expression* left, std::string op, Expression* right);
 	static Expression* expression(std::string, Expression* right);

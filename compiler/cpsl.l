@@ -8,7 +8,7 @@ extern YYSTYPE yylval;
 
 int lineNumber = 1;
 
-bool verboseLex = false;
+bool verboseLex = true;
 
 
 void keyword(std::string word);
@@ -111,7 +111,7 @@ $.*						{ comment(); }
 
 [ \t]*					/* eat up whitespace */
 
-[\n\r]					{ endOfLine(); lineNumber++; }
+[\n\r]					{ endOfLine(); }
 
 
 <<EOF>>					{ endOfFile(); 	return 0;}

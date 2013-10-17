@@ -10,8 +10,8 @@ Symbol::Symbol(std::string identifier) {
 	name = identifier;
 }
 
-void Symbol::print() {
-	std::cout << "Symbol: " << name << std::endl;
+void Symbol::print(std::ostream& out) {
+	out << "Symbol: " << name << std::endl;
 }
 
 //// End Symbol ////
@@ -51,8 +51,8 @@ Constant::Constant(std::string identifier) {
 	constType = UNKNOWN_TYPE;
 }
 
-void Constant::print() {
-	std::cout << "Constant: " << name << " Type: " << constType << std::endl;
+void Constant::print(std::ostream& out) {
+	out << "Constant: " << name << " Type: " << constType << std::endl;
 }
 
 //// End Constant ////
@@ -68,8 +68,8 @@ StringConstant::StringConstant(char* value) {
 	constType = CONST_STR;
 }
 
-void StringConstant::print() {
-	std::cout << "\tString Constant: " << std::endl
+void StringConstant::print(std::ostream& out) {
+	out << "\tString Constant: " << std::endl
 			  << "\tName: " << name << std::endl
 			  << "\tValue: " << val << std::endl;
 }
@@ -93,8 +93,8 @@ CharacterConstant::CharacterConstant(std::string value) {
 	constType = CONST_CHAR;
 }
 
-void CharacterConstant::print() {
-	std::cout << "\tCharacter Constant: " << std::endl
+void CharacterConstant::print(std::ostream& out) {
+	out << "\tCharacter Constant: " << std::endl
 			  << "\tName: " << name << std::endl
 			  << "\tValue: " << val << std::endl;
 }
@@ -111,8 +111,8 @@ IntegerConstant::IntegerConstant(int value) {
 	constType = CONST_INT;
 }
 
-void IntegerConstant::print() {
-	std::cout << "\tInteger Constant: " << std::endl
+void IntegerConstant::print(std::ostream& out) {
+	out << "\tInteger Constant: " << std::endl
 		  	  << "\tName: " << name << std::endl
 		  	  << "\tValue: " << val << std::endl;
 }
@@ -125,8 +125,8 @@ Boolean::Boolean(bool value) {
 	this->val = value;
 }
 
-void Boolean::print() {
-	std::cout << "\tBoolean Constant: " << std::endl
+void Boolean::print(std::ostream& out) {
+	out << "\tBoolean Constant: " << std::endl
 	  	      << "\tValue: " << val << std::endl;	
 }
 
@@ -144,8 +144,8 @@ Type::Type(std::string identifier) {
 	size = 4;
 }
 
-void Type::print() {
-	std::cout << "Type: " << name << " Size: " << size << std::endl;
+void Type::print(std::ostream& out) {
+	out << "Type: " << name << " Size: " << size << std::endl;
 }
 
 //// End Type ////
@@ -162,8 +162,8 @@ SimpleType::SimpleType(std::string identifier) {
 	size = 4;
 }
 
-void SimpleType::print() {
-	std::cout << "\tSimpleType:" << std::endl 
+void SimpleType::print(std::ostream& out) {
+	out << "\tSimpleType:" << std::endl 
 			  << "\tName: " << name << std::endl
 			  << "\tSize: " << size << std::endl;
 }
@@ -178,8 +178,8 @@ Variable::Variable(std::string name, Type* type, int location) {
 	this->location = location;
 }
 
-void Variable::print() {
-	std::cout << "\tVariable:" << std::endl 
+void Variable::print(std::ostream& out) {
+	out << "\tVariable:" << std::endl 
 			  << "\tName: " << name << std::endl
 			  << "\tLocation: " << this->location << std::endl 
 			  << "\tSize: " << type->size << std::endl;
@@ -214,18 +214,18 @@ Record::Record(std::deque<std::pair<std::deque<std::string>, Type*> >* recordIte
 	size = offset;
 }
 
-void Record::print() {
-	std::cout << "\tRecord Type: " << std::endl
+void Record::print(std::ostream& out) {
+	out << "\tRecord Type: " << std::endl
 			  << "\tName: " << this->name << std::endl
 			  << "\tSize: " << this->size << std::endl
 			  << "\tElements: " << std::endl;
 
 	for(std::pair<std::string, std::pair<Type*, int> > pair : recordMap) {
-		std::cout << "\t\tName: " << pair.first << std::endl
+		out << "\t\tName: " << pair.first << std::endl
 				  << "\t\tOffset: " << pair.second.second << std::endl
 				  << "\t\tStart Element Type Info *******" << std::endl;
-				  pair.second.first->print();
-		std::cout << "\t\tEnd Element Type Info *******" << std::endl;
+				  pair.second.first->print(out);
+		out << "\t\tEnd Element Type Info *******" << std::endl;
 	}
 }
 
@@ -254,8 +254,8 @@ Array::Array(Constant* lower, Constant* up, Type* type) {
 	this->type = type;
 }
 
-void Array::print() {
-	std::cout << "\tArray Type:" << std::endl
+void Array::print(std::ostream& out) {
+	out << "\tArray Type:" << std::endl
 			  << "\tSize: " << this->size << std::endl
 			  << "\tLower Bound: " << this->low << " Upper Bound: " << this->upper << std::endl
 			  << "\tArray Address: " << this <<std::endl
@@ -267,7 +267,7 @@ void Array::print() {
 //// Func ////
 
 Func::Func(std::string identifier, std::deque<std::pair<std::deque<std::string>, Type*> >* formalParams, Type* returnType) {
-	std::cout << "Function... Name: " << identifier << " ReturnType: " << returnType << " Params: ";
+	// std::cout << "Function... Name: " << identifier << " ReturnType: " << returnType << " Params: ";
 
 	this->name = identifier;
 	this->returnType = returnType;
@@ -280,29 +280,29 @@ Func::Func(std::string identifier, std::deque<std::pair<std::deque<std::string>,
 			std::deque<std::string> identifiers = formalParam.first;
 
 			for(int j = 0; j < identifiers.size(); j++) {
-				std::cout << " Ident: " << identifiers[j] << " Type: " << type;
+				// std::cout << " Ident: " << identifiers[j] << " Type: " << type;
 				std::pair<std::string, Type*> thePair = std::make_pair(identifiers[j], type);
 
 				signature.push_back(thePair);
 			}
 		}
 	}
-	std::cout << std::endl;
+	// std::cout << std::endl;
 }
 
-void Func::print() {
-	std::cout << "\tFunction: " << std::endl
+void Func::print(std::ostream& out) {
+	out << "\tFunction: " << std::endl
 			  << "\tLabel/Location: " << name << std::endl
 			  << "\tParameters start*********:" << std::endl;
 
 	int paramCount = 1;
 
 	for(std::pair<std::string, Type*> pair : signature) {
-		std::cout << "\tParam " << paramCount++ << std::endl;
-		pair.second->print();
+		out << "\tParam " << paramCount++ << std::endl;
+		pair.second->print(out);
 	}
 
-	std::cout << "\tParameters End*********:" << std::endl;
+	out << "\tParameters End*********:" << std::endl;
 }	
 
 //// End Func ////
@@ -310,7 +310,7 @@ void Func::print() {
 //// Proc ////
 
 Proc::Proc(std::string identifier, std::deque<std::pair<std::deque<std::string>, Type*> >* formalParams) {
-	std::cout << "Procedure... Name: " << identifier << " Params: ";
+	// std::cout << "Procedure... Name: " << identifier << " Params: ";
 
 	this->name = identifier;
 
@@ -322,18 +322,18 @@ Proc::Proc(std::string identifier, std::deque<std::pair<std::deque<std::string>,
 			std::deque<std::string> identifiers = formalParam.first;
 
 			for(int j = 0; j < identifiers.size(); j++) {
-				std::cout << " Ident: " << identifiers[j] << " Type: " << type;
+				// std::cout << " Ident: " << identifiers[j] << " Type: " << type;
 				std::pair<std::string, Type*> thePair = std::make_pair(identifiers[j], type);
 
 				signature.push_back(thePair);
 			}
 		}
 	}
-	std::cout << std::endl;
+	// std::cout << std::endl;
 }	
 
-void Proc::print() {
-	std::cout << "\tProcedure: " << std::endl
+void Proc::print(std::ostream& out) {
+	out << "\tProcedure: " << std::endl
 			  << "\tName/Label/Location: " << name << std::endl; 
 }	
 
