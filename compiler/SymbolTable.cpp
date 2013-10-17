@@ -434,28 +434,10 @@ Expression* SymbolTable::expression(Expression* left, std::string op, Expression
 			Expression* expression = eval(left, right, "and");
 			expression->type = dynamic_cast<Type*>(lookup("boolean"));
 			return expression;
-		} else if (op == "equal") {
-			Expression* expression = left;
-			expression->type = dynamic_cast<Type*>(lookup("boolean"));
-			return expression;
-		} else if (op == "<>") {
-			Expression* expression = left;
-			expression->type = dynamic_cast<Type*>(lookup("boolean"));
-			return expression;
-		} else if (op == "<=") {
-			Expression* expression = left;
-			expression->type = dynamic_cast<Type*>(lookup("boolean"));
-			return expression;
-		} else if (op == ">=") {
-			Expression* expression = left;
-			expression->type = dynamic_cast<Type*>(lookup("boolean"));
-			return expression;
-		} else if (op == "<") {
-			Expression* expression = eval(left, right, "slt");
-			expression->type = dynamic_cast<Type*>(lookup("boolean"));
-			return expression;
-		} else if (op == ">") {
-			Expression* expression = eval(right, left, "slt");
+		} else if (op == "seq" || op == "sne" || 
+				   op == "sle" || op == "sge" ||
+				   op == "slt" || op == "sgt") {
+			Expression* expression = eval(left, right, op);
 			expression->type = dynamic_cast<Type*>(lookup("boolean"));
 			return expression;
 		} else if (op == "mult") {

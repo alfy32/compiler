@@ -265,12 +265,12 @@ NullStatement:
 
 Expression:     Expression OR_SYM Expression            { $$ = SymbolTable::expression($1, "or", $3); }
                 | Expression AND_SYM Expression         { $$ = SymbolTable::expression($1, "and", $3); }
-                | Expression EQUAL_SYM Expression       { $$ = SymbolTable::expression($1, "equal", $3); }
-                | Expression NOT_EQUAL_SYM Expression   { $$ = SymbolTable::expression($1, "<>", $3); }
-                | Expression LT_EQ_SYM Expression       { $$ = SymbolTable::expression($1, "<=", $3); }
-                | Expression GT_EQ_SYM Expression       { $$ = SymbolTable::expression($1, ">=", $3); }
-                | Expression LT_SYM Expression          { $$ = SymbolTable::expression($1, "<", $3); }
-                | Expression GT_SYM Expression          { $$ = SymbolTable::expression($1, ">", $3); }
+                | Expression EQUAL_SYM Expression       { $$ = SymbolTable::expression($1, "seq", $3); }
+                | Expression NOT_EQUAL_SYM Expression   { $$ = SymbolTable::expression($1, "sne", $3); }
+                | Expression LT_EQ_SYM Expression       { $$ = SymbolTable::expression($1, "sle", $3); }
+                | Expression GT_EQ_SYM Expression       { $$ = SymbolTable::expression($1, "sge", $3); }
+                | Expression LT_SYM Expression          { $$ = SymbolTable::expression($1, "slt", $3); }
+                | Expression GT_SYM Expression          { $$ = SymbolTable::expression($1, "sgt", $3); }
                 | Expression ADD_SYM Expression         { $$ = SymbolTable::expression($1, "add", $3); }
                 | Expression SUBTRACT_SYM Expression    { $$ = SymbolTable::expression($1, "sub", $3); }
                 | Expression MULTIPLY_SYM Expression    { $$ = SymbolTable::expression($1, "mult", $3); }
@@ -291,7 +291,7 @@ Expression:     Expression OR_SYM Expression            { $$ = SymbolTable::expr
                 | INT_CONST_SYM     { $$ = SymbolTable::integerConstToExpression($1); }
                 | CHAR_CONST_SYM    { $$ = SymbolTable::charConstToExpression($1); }
                 | STR_CONST_SYM     { $$ = SymbolTable::stringConstToExpression($1); }
-                | IDENT_SYM         { std::cout << "This doesn't work right now......" << std::endl; $$ = SymbolTable::identToExpression($1); }
+              //  | IDENT_SYM         { std::cout << "This doesn't work right now......" << std::endl; $$ = SymbolTable::identToExpression($1); }
                 ;
 
 /*Expression:     NEG_SYM Expression
