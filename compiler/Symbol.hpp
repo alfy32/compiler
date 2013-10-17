@@ -2,7 +2,7 @@
 #define SYMBOL_HPP
 
 #include <iostream>
-#include <vector>
+#include <deque>
 #include <map>
 #include <string>
 #include <memory>
@@ -94,7 +94,7 @@ public:
 
 	Record();
 
-	Record(std::vector<std::pair<std::vector<std::string>, Type*> >* recordItems);
+	Record(std::deque<std::pair<std::deque<std::string>, Type*> >* recordItems);
 	virtual void print();
 };
 
@@ -111,22 +111,22 @@ public:
 
 class Func : public Symbol {
 public:
-	std::vector<std::pair<std::string, Type*> > signature;
+	std::deque<std::pair<std::string, Type*> > signature;
 	Type* returnType;
 
 	bool isForward;
 
-	Func(std::string identifier, std::vector<std::pair<std::vector<std::string>, Type*> >* formalParams, Type* returnType);
+	Func(std::string identifier, std::deque<std::pair<std::deque<std::string>, Type*> >* formalParams, Type* returnType);
 	virtual void print();
 };
 
 class Proc : public Symbol {
 public:
-	std::vector<std::pair<std::string, Type*> > signature;
+	std::deque<std::pair<std::string, Type*> > signature;
 
 	bool isForward;
 
-	Proc(std::string identifier, std::vector<std::pair<std::vector<std::string>, Type*> >* formalParams);
+	Proc(std::string identifier, std::deque<std::pair<std::deque<std::string>, Type*> >* formalParams);
 	virtual void print();
 };
 

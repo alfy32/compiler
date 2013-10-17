@@ -194,13 +194,13 @@ Record::Record() {
 	size = 0;
 }
 
-Record::Record(std::vector<std::pair<std::vector<std::string>, Type*> >* recordItems) {
+Record::Record(std::deque<std::pair<std::deque<std::string>, Type*> >* recordItems) {
 	name = "Record";
 
 	int offset = 0;
 
 	for(int i = 0; i < recordItems->size(); i++) {
-		std::pair<std::vector<std::string>, Type*> recordItem = (*recordItems)[i];
+		std::pair<std::deque<std::string>, Type*> recordItem = (*recordItems)[i];
 
 		for(int j = 0; j < recordItem.first.size(); j++) {
 			std::pair<Type*, int> recordMapItem = std::make_pair(recordItem.second, offset);
@@ -266,7 +266,7 @@ void Array::print() {
 
 //// Func ////
 
-Func::Func(std::string identifier, std::vector<std::pair<std::vector<std::string>, Type*> >* formalParams, Type* returnType) {
+Func::Func(std::string identifier, std::deque<std::pair<std::deque<std::string>, Type*> >* formalParams, Type* returnType) {
 	std::cout << "Function... Name: " << identifier << " ReturnType: " << returnType << " Params: ";
 
 	this->name = identifier;
@@ -275,9 +275,9 @@ Func::Func(std::string identifier, std::vector<std::pair<std::vector<std::string
 	if(formalParams) {
 
 		for(int i = 0; i < formalParams->size(); i++) {
-			std::pair<std::vector<std::string>, Type*> formalParam = (*formalParams)[i];
+			std::pair<std::deque<std::string>, Type*> formalParam = (*formalParams)[i];
 			Type* type = formalParam.second;
-			std::vector<std::string> identifiers = formalParam.first;
+			std::deque<std::string> identifiers = formalParam.first;
 
 			for(int j = 0; j < identifiers.size(); j++) {
 				std::cout << " Ident: " << identifiers[j] << " Type: " << type;
@@ -309,7 +309,7 @@ void Func::print() {
 
 //// Proc ////
 
-Proc::Proc(std::string identifier, std::vector<std::pair<std::vector<std::string>, Type*> >* formalParams) {
+Proc::Proc(std::string identifier, std::deque<std::pair<std::deque<std::string>, Type*> >* formalParams) {
 	std::cout << "Procedure... Name: " << identifier << " Params: ";
 
 	this->name = identifier;
@@ -317,9 +317,9 @@ Proc::Proc(std::string identifier, std::vector<std::pair<std::vector<std::string
 	if(formalParams) {
 
 		for(int i = 0; i < formalParams->size(); i++) {
-			std::pair<std::vector<std::string>, Type*> formalParam = (*formalParams)[i];
+			std::pair<std::deque<std::string>, Type*> formalParam = (*formalParams)[i];
 			Type* type = formalParam.second;
-			std::vector<std::string> identifiers = formalParam.first;
+			std::deque<std::string> identifiers = formalParam.first;
 
 			for(int j = 0; j < identifiers.size(); j++) {
 				std::cout << " Ident: " << identifiers[j] << " Type: " << type;

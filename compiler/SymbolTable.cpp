@@ -7,6 +7,8 @@ int SymbolTable::currentRegister = 8;
 
 int SymbolTable::currentOffset = 0;
 
+int SymbolTable::currentConstString = 1;
+
 //// Expression ////
 
 Expression::Expression(int location) {
@@ -26,13 +28,9 @@ Table::Table() {
 }
 
 void Table::add(std::string identifier, Symbol* symbol) {
-	// std::cout << "Adding to table...\n ";
-	// std::cout << "  Identifier: " << identifier << " Symbol: " << symbol << std::endl;
-
-
 	if(tableMap.find(identifier) != tableMap.end()) {
-		std::cout << "We alread have the symbol (" << identifier << ") in the table. I quit!!!!" << std::endl;
-		exit(1);
+		SymbolTable::getInstance()->getErrorStream() << "We alread have the symbol (" << identifier << ") in the table. I quit!!!!" << std::endl;
+		yyerror("Symbol already defined.");
 	}
 
 	this->tableMap[identifier] = symbol;
@@ -61,16 +59,32 @@ void Table::print() {
 
 //// SymbolTable ////
 
+SymbolTable::SymbolTable() {
+	//open the mars file
+	openFile();
+
+	//add initial tables
+	symbolTable.push_back(initializedMainTable());
+	symbolTable.push_back(Table());
+}
+
 SymbolTable* SymbolTable::getInstance() {
 	if(symbolTableInstance == NULL) {
 		symbolTableInstance = new SymbolTable;
-
-		symbolTableInstance->symbolTable.push_back(initializedMainTable());
-
-		symbolTableInstance->symbolTable.push_back(Table());
-
 	}
 	return symbolTableInstance;
+}
+
+void SymbolTable::openFile() {
+	outputFile.open("cpsl.asm");
+}
+
+std::ofstream& SymbolTable::getFileStream() {
+	return outputFile;
+}
+
+std::ostream& SymbolTable::getErrorStream() {
+	return std::cout;
 }
 
 void SymbolTable::add(std::string identifier, Symbol* symbol) {
@@ -85,20 +99,19 @@ Symbol* SymbolTable::lookup(std::string name) {
 
 	for(int i = tableInstance->symbolTable.size()-1; i >= 0; i--) {
 		Symbol* symbol = tableInstance->symbolTable[i].lookup(name);
-		// std::cout << "Finding Symbol: level " << i << " Name: " << name << " Symbol: " << symbol << std::endl;
+		
 		if(symbol) {
 			return symbol;
 		}
 	}
 	
-	std::cout << "The symbol(" << name << ") is not in the table so I will die." << std::endl;
-	exit(1);
+	getInstance()->getErrorStream() << "The symbol(" << name << ") is not in the table so I will die." << std::endl;
+	yyerror("Symbol not found in symbol table.");
 	
 	return NULL;
 }
 
 void SymbolTable::pop() {
-	// std::cout << "Popping Table...\n";
 	SymbolTable* tableInstance = getInstance();
 
 	std::cout << "*********** This is level: " << tableInstance->symbolTable.size()-1 << " **********" << std::endl;
@@ -136,7 +149,7 @@ Table SymbolTable::initializedMainTable() {
 	return table;
 }
 
-void SymbolTable::addVar(std::vector<std::string>* identList, Type* type) {
+void SymbolTable::addVar(std::deque<std::string>* identList, Type* type) {
 	for(std::string identifier : *identList) {
 		Variable* var = new Variable(identifier, type, currentOffset);
 		add(identifier, var);
@@ -215,12 +228,11 @@ Constant* SymbolTable::evalConstant(Constant* left, std::string oper, Constant* 
 			evalStrConstant(left, oper, right);
 			break;
 		default:
-			std::cout << "This is and unknown constant type. I quit.\n";
-			exit(1);
+			getInstance()->getErrorStream() << "This is and unknown constant type. I quit.\n";
+			yyerror("Unknown Constant type.");
 		}
 	} else {
-		std::cout << "We quit. You are trying to add constants of different types. \n";
-		exit(1);
+		yyerror("We quit. You are trying to add constants of different types.");
 	}
 }
 
@@ -235,8 +247,7 @@ Constant* SymbolTable::evalConstant(std::string oper, Constant* right) {
 		}
 	}
 
-	std::cout << "I don't know how to evaluate this constant.\n";
-	exit(1);
+	yyerror("I don't know how to evaluate this constant.");
 }
 
 Constant* SymbolTable::evalIntConstant(Constant* left, std::string oper, Constant* right) {
@@ -271,7 +282,7 @@ Constant* SymbolTable::evalIntConstant(Constant* left, std::string oper, Constan
 		return new IntegerConstant(leftValue % rightValue);
 	} 
 
-	std::cout << "That was an invalid operator for integers. I quit.\n";
+	yyerror("That was an invalid operator for integers. I quit.\n");
 	exit(1); 
 
 	return NULL;
@@ -297,8 +308,7 @@ Constant* SymbolTable::evalCharConstant(Constant* left, std::string oper, Consta
 		return new CharacterConstant(leftValue + rightValue);
 	} 
 
-	std::cout << "That was an invalid operator for characters. I quit.\n";
-	exit(1); 
+	yyerror("That was an invalid operator for characters. I quit.");
 
 	return NULL;
 }
@@ -323,14 +333,20 @@ Constant* SymbolTable::evalStrConstant(Constant* left, std::string oper, Constan
 		return new CharacterConstant(leftValue + rightValue);
 	} 
 
-	std::cout << "That was an invalid operator for strings. I quit.\n";
-	exit(1); 
+	yyerror("That was an invalid operator for strings. I quit.");
 
 	return NULL;
 }
 
-Expression* SymbolTable::lValueToExpression(std::string identifier) {
-	Variable* variable = dynamic_cast<Variable*>(lookup(identifier));
+Variable* SymbolTable::makeLvalue(std::string identifier) {
+	return dynamic_cast<Variable*>(lookup(identifier));
+}
+
+Expression* SymbolTable::lValueToExpression(Variable* variable) {
+	std::ofstream& outFile = getInstance()->getFileStream();
+
+	outFile << std::endl
+			<< "# loading an lvalue into a register." << std::endl;
 
 	Expression* expression = load(variable->location);
 	expression->type = variable->type;
@@ -338,8 +354,38 @@ Expression* SymbolTable::lValueToExpression(std::string identifier) {
 }
 
 Expression* SymbolTable::integerConstToExpression(int value) {
-	std::cout << "# loading a constant integer into a register.\n";
+	std::ofstream& outFile = getInstance()->getFileStream();
+
+	outFile << std::endl
+			<< "# loading a constant integer into a register." << std::endl;
+
 	return loadImmediateInt(value);
+}
+
+Expression* SymbolTable::charConstToExpression(std::string value) {
+	std::ofstream& outFile = getInstance()->getFileStream();
+
+	outFile << std::endl
+			<< "# loading a constant character into a register." << std::endl;
+
+	return loadImmediateChar(value);
+}
+
+Expression* SymbolTable::stringConstToExpression(std::string value) {
+	std::string label = addStringConstant(value);
+
+	int location = getRegister();
+
+	std::ofstream& outFile = getInstance()->getFileStream();
+
+	outFile << std::endl
+			<< "# loading a constant string into a register." << std::endl
+			<< "la $" << location << ", " << label << std::endl
+			<< std::endl;
+
+	Expression* expression = new Expression(location);
+	expression->type = dynamic_cast<Type*>(lookup("string"));
+	return expression;
 }
 
 Constant* SymbolTable::lookupConstant(std::string identifier) {
@@ -348,10 +394,49 @@ Constant* SymbolTable::lookupConstant(std::string identifier) {
 
 Expression* SymbolTable::expression(Expression* left, std::string op, Expression* right){
 	if(left->type == right->type) {
-		return eval(left, right, op);
+		if(op == "or") {
+			Expression* expression = eval(left, right, "or");
+			expression->type = dynamic_cast<Type*>(lookup("boolean"));
+			return expression;
+		} else if(op == "and") {
+			Expression* expression = eval(left, right, "and");
+			expression->type = dynamic_cast<Type*>(lookup("boolean"));
+			return expression;
+		} else if (op == "equal") {
+			Expression* expression = left;
+			expression->type = dynamic_cast<Type*>(lookup("boolean"));
+			return expression;
+		} else if (op == "<>") {
+			Expression* expression = left;
+			expression->type = dynamic_cast<Type*>(lookup("boolean"));
+			return expression;
+		} else if (op == "<=") {
+			Expression* expression = left;
+			expression->type = dynamic_cast<Type*>(lookup("boolean"));
+			return expression;
+		} else if (op == ">=") {
+			Expression* expression = left;
+			expression->type = dynamic_cast<Type*>(lookup("boolean"));
+			return expression;
+		} else if (op == "<") {
+			Expression* expression = eval(left, right, "slt");
+			expression->type = dynamic_cast<Type*>(lookup("boolean"));
+			return expression;
+		} else if (op == ">") {
+			Expression* expression = eval(right, left, "slt");
+			expression->type = dynamic_cast<Type*>(lookup("boolean"));
+			return expression;
+		} else if (op == "mult") {
+			return evalMult(left, right);
+		} else if (op == "div") {
+			return evalDiv(left, right);
+		} else if (op == "mod") {
+			return evalMod(left, right);
+		} else {
+			return eval(left, right, op);
+		}
 	} else {
-		std::cout << "We have a type problem. You must have matching types in expressions.\n";
-		exit(1);
+		yyerror("We have a type problem. You must have matching types in expressions.");
 	}
 }
 
@@ -360,17 +445,12 @@ Expression* SymbolTable::expression(std::string, Expression* right){
 	return right;
 }
 
-Expression* SymbolTable::expressionLvalue(Expression* symbol){
-	// std::cout << "Expression: int" << std::endl;
-	return symbol;
-}
-
 Expression* SymbolTable::function_call(std::string identifier) {
 	// std::cout << "Function Call: no params." << std::endl;
 	return new Expression(0);
 }
 
-Expression* SymbolTable::function_call(std::string identifier, std::vector<Expression*>*) {
+Expression* SymbolTable::function_call(std::string identifier, std::deque<Expression*>*) {
 	// std::cout << "Function Call: has params." << std::endl;
 	return new Expression(0);
 }
@@ -395,19 +475,29 @@ Expression* SymbolTable::succ(Expression* symbol) {
 	return new Expression(0);
 }
 
-std::vector<Expression*>* SymbolTable::makeExpressionList(Expression* expression, std::vector<Expression*>* expressions) {
+std::deque<Expression*>* SymbolTable::makeExpressionList(Expression* expression, std::deque<Expression*>* expressions) {
 	if(expressions == NULL) {
-		expressions = new std::vector<Expression*>;
+		expressions = new std::deque<Expression*>;
 	}
 
-	expressions->push_back(expression);
+	expressions->push_front(expression);
 
 	return expressions;
 }
 
-std::vector<Symbol*>* SymbolTable::makeSymbolVector(Symbol* symbol, std::vector<Symbol*>* symbols) {
+std::deque<Variable*>* SymbolTable::makeVariableList(Variable* variable, std::deque<Variable*>* variables) {
+	if(variables == NULL) {
+		variables = new std::deque<Variable*>;
+	}
+
+	variables->push_front(variable);
+
+	return variables;
+}
+
+std::deque<Symbol*>* SymbolTable::makeSymboldeque(Symbol* symbol, std::deque<Symbol*>* symbols) {
 	if(symbols == NULL) {
-		symbols = new std::vector<Symbol*>;
+		symbols = new std::deque<Symbol*>;
 	}
 
 	symbols->push_back(symbol);
@@ -415,46 +505,94 @@ std::vector<Symbol*>* SymbolTable::makeSymbolVector(Symbol* symbol, std::vector<
 	return symbols;
 }
 
-std::vector<Type*>* SymbolTable::makeTypeList(std::vector<Symbol*>* identifiers, Type* type, std::vector<Type*>* symbols) {
+std::deque<Type*>* SymbolTable::makeTypeList(std::deque<Symbol*>* identifiers, Type* type, std::deque<Type*>* symbols) {
 	if(symbols == NULL) {
-		symbols = new std::vector<Type*>;
+		symbols = new std::deque<Type*>;
 	}
 
 	for(int i = 0; i < (int)identifiers->size(); i++) {
 		Type* newType = new Type(*type);
 		newType->name = (*identifiers)[i]->name;
-		symbols->push_back(newType);
+		symbols->push_front(newType);
 	}
 
 	return symbols;
 }
 
-std::vector<std::string>* SymbolTable::makeIdentList(std::string identifier, std::vector<std::string>* identList) {
+std::deque<std::string>* SymbolTable::makeIdentList(std::string identifier, std::deque<std::string>* identList) {
 	if(identList == NULL) {
-		identList = new std::vector<std::string>;
+		identList = new std::deque<std::string>;
 	}
 
-	identList->push_back(identifier);
+	identList->push_front(identifier);
 
 	return identList;
 }
 
-std::vector<std::pair<std::vector<std::string>, Type*> >* SymbolTable::makeRecordItem(std::vector<std::string>* identList, Type* type, std::vector<std::pair<std::vector<std::string>, Type*> >* recordItem) {
+std::deque<std::pair<std::deque<std::string>, Type*> >* SymbolTable::makeRecordItem(std::deque<std::string>* identList, Type* type, std::deque<std::pair<std::deque<std::string>, Type*> >* recordItem) {
 	if(recordItem == NULL) {
-		recordItem = new std::vector<std::pair<std::vector<std::string>, Type*> >;
+		recordItem = new std::deque<std::pair<std::deque<std::string>, Type*> >;
 	}
 
-	std::pair<std::vector<std::string>, Type*> thePair = std::make_pair(*identList, type);
+	std::pair<std::deque<std::string>, Type*> thePair = std::make_pair(*identList, type);
 
 	recordItem->push_back(thePair);
 
 	return recordItem;
 }
 
+////////////////////////// Strings //////////////////////////////////////
+
+std::string SymbolTable::addStringConstant(std::string value) {
+	std::string label = getStringConstantLabel();
+	getInstance()->stringConstants[label] = value;
+	return label;
+}
+
+void SymbolTable::printStringConstants() {
+	std::ofstream& outFile = getInstance()->getFileStream();
+
+	outFile << std::endl
+			<< "# This is the string area." << std::endl
+			<< "\t.data" << std::endl;
+
+	for(std::pair<std::string, std::string> pair : getInstance()->stringConstants) {
+		outFile << pair.first << ":\t.asciiz " << pair.second << std::endl;
+	}
+}
+
+std::string SymbolTable::getStringConstantLabel() {
+	return "str" + std::to_string(currentConstString++);
+}
+
+////////////////////////////////////////////////////////////////////////////
+
+////////////////////////// Statements //////////////////////////////////////
+
+void SymbolTable::endStatement() {
+	std::ofstream& outFile = getInstance()->getFileStream();
+
+	outFile << std::endl
+			<< "# this is the end of a statement." << std::endl
+			<< std::endl;
+
+	currentRegister = 8;
+}
+
+////////////////////////////////////////////////////////////////////////////
+
 
 ///////////////////////// Initialize Assembly //////////////////////////////
 
 void SymbolTable::initAssembly() {
+	std::ofstream& outFile = getInstance()->getFileStream();
+
+	outFile << "\t.text" << std::endl
+			<< "\t.globl main" << std::endl
+			<< "main: "//la $gp, GA" << std::endl
+			// << "\tb _begin" << std::endl
+			<< std::endl;
+
 	/*
 		.text
 		.globl main
@@ -469,69 +607,118 @@ void SymbolTable::initAssembly() {
 	string area
 	.asciiz " "
 	*/
-	std::cout << "main: "; //TODO: write main stuff here.
 }
 
 ////////////////////////////////////////////////////////////////////////////
 
 //////////////////////////// Read and Write ////////////////////////////////
 
-void SymbolTable::write(std::vector<Expression*>* expressionList) {
+void SymbolTable::write(std::deque<Expression*>* expressionList) {
 	for(Expression* expression: *expressionList) {
+		int location = lookup(expression);
+
 		if(expression->type == dynamic_cast<Type*>(lookup("integer"))) {
-			int location = lookup(expression);
 			writeInteger(location);
 		} 
 		else if(expression->type == dynamic_cast<Type*>(lookup("string"))) {
-			std::string label = "Find the label for this string.";
-			writeString(label);
+			writeString(location);
 		}
 		else if(expression->type == dynamic_cast<Type*>(lookup("char"))) {
-			int location = lookup(expression);
 			writeCharacter(location);
 		}
+		else if(expression->type == dynamic_cast<Type*>(lookup("boolean"))) {
+			writeInteger(location);
+		}
 		else {
-			std::cout << "Trying to write non integer.\n";
+			std::ofstream& outFile = getInstance()->getFileStream();
+
+			outFile << "# Trying to write an unknown type.\n";
 		}
 	}
 }
 
 void SymbolTable::writeInteger(int location) {
-	std::cout << std::endl
-			  << "# Writing an integer to the console.\n."
-			  << "li	$v0, 1" << std::endl
-			  << "mv	$a0, $" << location << std::endl
-			  << "syscall" << std::endl
-			  << std::endl;
+	std::ofstream& outFile = getInstance()->getFileStream();
+
+	outFile << std::endl
+		  	<< "# Writing an integer to the console." << std::endl
+		  	<< "li	$v0, 1" << std::endl
+		  	<< "move	$a0, $" << location << std::endl
+		  	<< "syscall" << std::endl
+		  	<< std::endl;
 }
 
 void SymbolTable::writeCharacter(int location) {
-	std::cout << std::endl
-			  << "# Writing a character to the console.\n."
-			  << "li	$v0, #figure out what this system call is" << std::endl
-			  << "mv	$a0, $" << location << std::endl
-			  << "syscall" << std::endl
-			  << std::endl;
+	std::ofstream& outFile = getInstance()->getFileStream();
+
+	outFile << std::endl
+			<< "# Writing a character to the console." << std::endl
+			<< "li	$v0, 11" << std::endl
+			<< "move	$a0, $" << location << std::endl
+			<< "syscall" << std::endl
+			<< std::endl;
 }
 
-void SymbolTable::writeString(std::string label) {
-	std::cout << std::endl
-			  << "Writing a string to the console.\n"
-			  << "li	$v0, 4" << std::endl
-			  << "mv	$a0, " << label << std::endl
-			  << "syscall" << std::endl
-			  << std::endl;
+void SymbolTable::writeString(int location) {
+	std::ofstream& outFile = getInstance()->getFileStream();
+
+	outFile << std::endl
+			<< "# Writing a string to the console." << std::endl
+			<< "li	$v0, 4" << std::endl
+			<< "move	$a0, $" << location << std::endl
+			<< "syscall" << std::endl
+			<< std::endl;
 }
 
-Expression* SymbolTable::read(Expression* expression) {
-	int location = expression->getLocation();
-	return readInteger(location);
+void SymbolTable::read(std::deque<Variable*>* variableList) {
+	for(Variable* variable : * variableList) {
+		if(variable->type == dynamic_cast<Type*>(lookup("integer"))) {
+			readInteger(variable);
+		} 
+		else if(variable->type == dynamic_cast<Type*>(lookup("char"))) {
+			readCharacter(variable);
+		}
+		else {
+			std::ofstream& outFile = getInstance()->getFileStream();
+
+			outFile << "Trying to read an unknown type..\n";
+		}
+	}
 }
 
-Expression* SymbolTable::readInteger(int location) {
-	std::cout << "li	$v0, 5" << std::endl
-			  << "syscall" << std::endl
-			  << "sw	$v0, $" << location << std::endl;
+void SymbolTable::readInteger(Variable* variable) {
+	std::ofstream& outFile = getInstance()->getFileStream();
+
+	outFile << std::endl
+			<< "# Reading an integer from the console." << std::endl
+			<< "li		$v0, 5" << std::endl
+			<< "syscall" << std::endl
+			<< "sw	$v0, " << variable->location << "($sp)" << std::endl
+			<< std::endl;
+}
+
+void SymbolTable::readString() {
+	// TODO: figure out how to do this.
+
+	// std::ofstream& outFile = getInstance()->getFileStream();
+
+	// outFile << std::endl
+	// 		<< "# Reading an integer from the console." << std::endl
+	// 		<< "li		$v0, 5" << std::endl
+	// 		<< "syscall" << std::endl
+	// 		<< "move	$" << location << ", $v0" << std::endl
+	// 		<< std::endl;
+}
+
+void SymbolTable::readCharacter(Variable* variable) {
+	std::ofstream& outFile = getInstance()->getFileStream();
+
+	outFile << std::endl
+			<< "# Reading a character from the console." << std::endl
+			<< "li		$v0, 12" << std::endl
+			<< "syscall" << std::endl
+			<< "sw	$v0, " << variable->location << "($sp)" << std::endl
+			<< std::endl;
 }
 
 ////////////////////////////////////////////////////////////////////////////
@@ -558,10 +745,68 @@ Expression* SymbolTable::eval(Expression* left, Expression* right, std::string o
 	int rightLocation = lookup(right);
 	int resultLocation = getRegister();
 
-	std::cout << operation << " $" << resultLocation
-		  	  << ", $" << leftLocation 
-		  	  << ", $" << rightLocation
-		  	  << std::endl;
+	std::ofstream& outFile = getInstance()->getFileStream();
+
+	outFile << std::endl
+			<< "# evaluating an expression. " << std::endl
+			<< operation << " $" << resultLocation
+			<< ", $" << leftLocation 
+			<< ", $" << rightLocation
+			<< std::endl;
+
+	Expression* expression = new Expression(resultLocation);
+	expression->type = left->type;
+	return expression;
+}
+
+Expression* SymbolTable::evalMult(Expression* left, Expression* right) {
+	int leftLocation = lookup(left);
+	int rightLocation = lookup(right);
+	int resultLocation = getRegister();
+
+	std::ofstream& outFile = getInstance()->getFileStream();
+
+	outFile << std::endl
+			<< "# evaluating multiply expression. " << std::endl
+			<< "mult $" << leftLocation << ", $" << rightLocation << std::endl
+			<< "mflo $" << resultLocation << std::endl
+			<< std::endl;
+
+	Expression* expression = new Expression(resultLocation);
+	expression->type = left->type;
+	return expression;
+}
+
+Expression* SymbolTable::evalDiv(Expression* left, Expression* right) {
+	int leftLocation = lookup(left);
+	int rightLocation = lookup(right);
+	int resultLocation = getRegister();
+
+	std::ofstream& outFile = getInstance()->getFileStream();
+
+	outFile << std::endl
+			<< "# evaluating divide expression. " << std::endl
+			<< "div $" << leftLocation << ", $" << rightLocation << std::endl
+			<< "mflo $" << resultLocation << std::endl
+			<< std::endl;
+
+	Expression* expression = new Expression(resultLocation);
+	expression->type = left->type;
+	return expression;
+}
+
+Expression* SymbolTable::evalMod(Expression* left, Expression* right) {
+	int leftLocation = lookup(left);
+	int rightLocation = lookup(right);
+	int resultLocation = getRegister();
+
+	std::ofstream& outFile = getInstance()->getFileStream();
+
+	outFile << std::endl
+			<< "# evaluating mod expression. " << std::endl
+			<< "div $" << leftLocation << ", $" << rightLocation << std::endl
+			<< "mfhi $" << resultLocation << std::endl
+			<< std::endl;
 
 	Expression* expression = new Expression(resultLocation);
 	expression->type = left->type;
@@ -570,9 +815,11 @@ Expression* SymbolTable::eval(Expression* left, Expression* right, std::string o
 
 Expression* SymbolTable::load(int location) {
 	int resultLocation = getRegister();
-	std::cout << "lw $" << resultLocation
-			  << ", " << location << "($sp)"
-			  << std::endl;
+	std::ofstream& outFile = getInstance()->getFileStream();
+
+	outFile << "lw $" << resultLocation
+			<< ", " << location << "($sp)"
+			<< std::endl;
 
 	return new Expression(resultLocation);
 }
@@ -580,18 +827,22 @@ Expression* SymbolTable::load(int location) {
 Expression* SymbolTable::load(std::string name) {
 	std::pair<int, int> offset = lookupExpression(name);
 	int resultLocation = getRegister();
-	std::cout << "lw $" << resultLocation
-			  << ", $" << offset.second
-			  << "(" << offset.first << ")"
-			  << std::endl
-			  << std::endl;
+
+	std::ofstream& outFile = getInstance()->getFileStream();
+
+	outFile << "lw $" << resultLocation << ", $" << offset.second << "(" << offset.first << ")" << std::endl
+			<< std::endl;
 
 	return new Expression(resultLocation); 
 }
 
 Expression* SymbolTable::loadImmediateInt(int value) {
 	int location = getRegister();
-	std::cout << "li	$" << location << ", " << value << std::endl << std::endl;
+
+	std::ofstream& outFile = getInstance()->getFileStream();
+
+	outFile << "li	$" << location << ", " << value << std::endl 
+			<< std::endl;
 	
 	Expression* expression = new Expression(location);
 	expression->type = dynamic_cast<Type*>(lookup("integer"));
@@ -600,8 +851,15 @@ Expression* SymbolTable::loadImmediateInt(int value) {
 
 Expression* SymbolTable::loadImmediateChar(std::string value) {
 	int location = getRegister();
-	std::cout << "li	$" << location << ", " << value << std::endl << std::endl;
-	return new Expression(location);
+	
+	std::ofstream& outFile = getInstance()->getFileStream();
+
+	outFile << "li	$" << location << ", " << value << std::endl 
+			<< std::endl;
+	
+	Expression* expression = new Expression(location);
+	expression->type = dynamic_cast<Type*>(lookup("char"));
+	return expression;
 }
 
 ////////////////////////////////////////////////////////////////////////////

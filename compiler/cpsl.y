@@ -21,18 +21,22 @@ extern int lineNumber;
     Func* functionSig;
     Proc* procedureSig;
     Expression* expression;
+    Variable* variable;
 
-    std::vector<Symbol*>* symbolVector_val;
-    std::vector<std::string>* identList;
+    std::deque<Symbol*>* symboldeque_val;
+    std::deque<std::string>* identList;
 
-    std::vector<std::pair<std::vector<std::string>, Type*> >* recordItem;
+    std::deque<std::pair<std::deque<std::string>, Type*> >* recordItem;
 
-    std::vector<Expression*>* expressionList;
+    std::deque<Expression*>* expressionList;
+    std::deque<Variable*>* variableList;
 }
 
 %type <const_val> ConstExpression
-%type <expression> Expression LValue
+%type <expression> Expression 
+%type <variable>LValue
 %type <expressionList> ExpressionList 
+%type <variableList> LValueList
 %type <identList> IdentList
 %type <recordItem> RecordItem FormalParameters
 %type <type_val> Type SimpleType ArrayType RecordType
@@ -82,7 +86,10 @@ extern int lineNumber;
 
 %%
 
-Program:        SubCDecl SubTDecl SubVDecl SubPFDecl Block DOT_SYM { SymbolTable::pop(); SymbolTable::pop(); }
+Program:        Init SubCDecl SubTDecl SubVDecl SubPFDecl Block DOT_SYM { SymbolTable::pop(); SymbolTable::pop(); SymbolTable::printStringConstants(); }
+                ;
+
+Init:           { SymbolTable::initAssembly(); }
                 ;
 
 SubCDecl:       ConstantDecl
@@ -135,7 +142,7 @@ SubVar:         VAR_SYM
                 | /* nothing */
                 ;
 
-Body:           SubCDecl SubTDecl SubVDecl Block
+Body:           SubCDecl SubTDecl SubVDecl Block   
                 ;
 
 Block:          BEGIN_SYM StatementSequence END_SYM 
@@ -182,21 +189,21 @@ SubVarDecl:     IdentList COLON_SYM Type SEMICOLON_SYM                  { Symbol
 
 /* 3.2 CPSL Statements */
 
-StatementSequence: Statement
-                | Statement SEMICOLON_SYM StatementSequence
+StatementSequence: Statement                                    
+                | Statement SEMICOLON_SYM StatementSequence     
                 ;
 
-Statement:      Assignemnt
-                | IfStatement
-                | WhileStatement
-                | RepeatStatement
-                | ForStatement
-                | StopStatement
-                | ReturnStatement
-                | ReadStatement
-                | WriteStatement
-                | ProcedureCall
-                | NullStatement
+Statement:      Assignemnt          { SymbolTable::endStatement(); }
+                | IfStatement       { SymbolTable::endStatement(); }
+                | WhileStatement    { SymbolTable::endStatement(); }
+                | RepeatStatement   { SymbolTable::endStatement(); }
+                | ForStatement      { SymbolTable::endStatement(); }
+                | StopStatement     { SymbolTable::endStatement(); }
+                | ReturnStatement   { SymbolTable::endStatement(); }
+                | ReadStatement     { SymbolTable::endStatement(); }
+                | WriteStatement    { SymbolTable::endStatement(); }
+                | ProcedureCall     { SymbolTable::endStatement(); }
+                | NullStatement     { SymbolTable::endStatement(); }
                 ;
 
 Assignemnt:     LValue ASSIGNMENT_SYM Expression 
@@ -233,11 +240,11 @@ ReturnStatement: RETURN_SYM
                 | RETURN_SYM Expression
                 ;
 
-ReadStatement:  READ_SYM L_PAREN_SYM LValueList R_PAREN_SYM
+ReadStatement:  READ_SYM L_PAREN_SYM LValueList R_PAREN_SYM    { SymbolTable::read($3); }
                 ;
 
-LValueList:      LValue
-                | LValue COMMA_SYM LValueList
+LValueList:      LValue                             { $$ = SymbolTable::makeVariableList($1, NULL); }
+                | LValue COMMA_SYM LValueList       { $$ = SymbolTable::makeVariableList($1, $3); }
                 ;
 
 WriteStatement: WRITE_SYM L_PAREN_SYM ExpressionList R_PAREN_SYM { SymbolTable::write($3); }
@@ -278,12 +285,12 @@ Expression:     Expression OR_SYM Expression            { $$ = SymbolTable::expr
                 | ORD_SYM L_PAREN_SYM Expression R_PAREN_SYM        { $$ = SymbolTable::ord($3); }
                 | PRED_SYM L_PAREN_SYM Expression R_PAREN_SYM       { $$ = SymbolTable::pred($3); }
                 | SUCC_SYM L_PAREN_SYM Expression R_PAREN_SYM       { $$ = SymbolTable::succ($3); }
-                | LValue                                            { $$ = SymbolTable::expressionLvalue($1); }
+                | LValue                                            { $$ = SymbolTable::lValueToExpression($1); }
                 // | ConstExpression
                 // I added this to make it work. Figure out how to fix better later. 
-                | INT_CONST_SYM     { $$ = SymbolTable::integerConstToExpression($1);     }
-                | CHAR_CONST_SYM    { $<const_val>$ = new CharacterConstant($1);    }
-                | STR_CONST_SYM     { $<const_val>$ = new StringConstant($1);  }
+                | INT_CONST_SYM     { $$ = SymbolTable::integerConstToExpression($1); }
+                | CHAR_CONST_SYM    { $$ = SymbolTable::charConstToExpression($1); }
+                | STR_CONST_SYM     { $$ = SymbolTable::stringConstToExpression($1); }
                 ;
 
 /*Expression:     NEG_SYM Expression
@@ -336,8 +343,8 @@ Expression9:    IDENT_SYM L_PAREN_SYM ExpressionList R_PAREN_SYM
                 ;*/
 
 
-LValue:         IDENT_SYM                       { $$ = SymbolTable::lValueToExpression($1); }
-                | IDENT_SYM SubLValueStar       { $$ = SymbolTable::lValueToExpression($1); }
+LValue:         IDENT_SYM                       { $$ = SymbolTable::makeLvalue($1); }
+                | IDENT_SYM SubLValueStar       { $$ = SymbolTable::makeLvalue($1); }
               /*  | IDENT_SYM DOT_SYM IDENT_SYM */
                 /*| LValue DOT_SYM LValue*/
                 /*| IDENT_SYM L_BRACKET_SYM Expression R_BRACKET_SYM*/

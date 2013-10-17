@@ -1,7 +1,12 @@
 #ifndef SYMBOL_TABLE_HPP
 #define SYMBOL_TABLE_HPP
 
+#include <fstream>
+#include <deque>
+
 #include "Symbol.hpp"
+
+extern int yyerror(const char*);
 
 class Expression {
 public:
@@ -25,23 +30,37 @@ public:
 };
 
 class SymbolTable {
-	/* Singleton Stuff */
+/* Singleton Stuff */
 private:
 	static SymbolTable* symbolTableInstance;
-	static int currentOffset;
 
 public:
 	static SymbolTable* getInstance();
 /* End Singleton Stuff */
 
+/* Assembly file stuff */
+private:
+	std::ofstream outputFile;
 public:
-	std::vector<Table> symbolTable; 
+	void openFile();
+	std::ofstream& getFileStream();
+	std::ostream& getErrorStream();
+/* End Assembly file stuff */
+
+public:
+	std::deque<Table> symbolTable; 
+	std::map<std::string, std::string> stringConstants;
+
+	SymbolTable();
+
+	static int currentOffset;
+	static int currentConstString;
 
 	static void add(std::string identifier, Symbol* symbol);
 	static Symbol* lookup(std::string name);
 	static void pop();
 	static Table initializedMainTable();
-	static void addVar(std::vector<std::string>* identList, Type* type);
+	static void addVar(std::deque<std::string>* identList, Type* type);
 	static void constDecl(std::string identifier, Constant* constExpression);
 	static void typeDecl(std::string identifier, Type* type);
 	static void funcDecl(std::string identifier, Func* func);
@@ -54,23 +73,40 @@ public:
 	static Constant* evalIntConstant(Constant* left, std::string oper, Constant* right);
 	static Constant* evalCharConstant(Constant* left, std::string oper, Constant* right);
 	static Constant* evalStrConstant(Constant* left, std::string oper, Constant* right);
-	static Expression* lValueToExpression(std::string identifier);
+	static Variable* makeLvalue(std::string identifier);
+	static Expression* lValueToExpression(Variable*);
 	static Expression* integerConstToExpression(int value);
+	static Expression* charConstToExpression(std::string value);
+	static Expression* stringConstToExpression(std::string value);
 	static Constant* lookupConstant(std::string identifier);
 	static Expression* expression(Expression* left, std::string op, Expression* right);
 	static Expression* expression(std::string, Expression* right);
-	static Expression* expressionLvalue(Expression* symbol);
 	static Expression* function_call(std::string identifier);
-	static Expression* function_call(std::string identifier, std::vector<Expression*>*);
+	static Expression* function_call(std::string identifier, std::deque<Expression*>*);
 	static Expression* chr(Expression* symbol);
 	static Expression* ord(Expression* symbol);
 	static Expression* pred(Expression* symbol);
 	static Expression* succ(Expression* symbol);
-	static std::vector<Expression*>* makeExpressionList(Expression* expression, std::vector<Expression*>* expressions);
-	static std::vector<Symbol*>* makeSymbolVector(Symbol* symbol, std::vector<Symbol*>* symbols);
-	static std::vector<Type*>* makeTypeList(std::vector<Symbol*>* identifiers, Type* type, std::vector<Type*>* symbols);
-	static std::vector<std::string>* makeIdentList(std::string identifier, std::vector<std::string>* identList);
-	static std::vector<std::pair<std::vector<std::string>, Type*> >* makeRecordItem(std::vector<std::string>* identList, Type* type, std::vector<std::pair<std::vector<std::string>, Type*> >* recordItem);
+	static std::deque<Expression*>* makeExpressionList(Expression* expression, std::deque<Expression*>* expressions);
+	static std::deque<Variable*>* makeVariableList(Variable*, std::deque<Variable*>*);
+	static std::deque<Symbol*>* makeSymboldeque(Symbol* symbol, std::deque<Symbol*>* symbols);
+	static std::deque<Type*>* makeTypeList(std::deque<Symbol*>* identifiers, Type* type, std::deque<Type*>* symbols);
+	static std::deque<std::string>* makeIdentList(std::string identifier, std::deque<std::string>* identList);
+	static std::deque<std::pair<std::deque<std::string>, Type*> >* makeRecordItem(std::deque<std::string>* identList, Type* type, std::deque<std::pair<std::deque<std::string>, Type*> >* recordItem);
+
+	////////////////////////// Strings //////////////////////////////////////
+
+	static std::string addStringConstant(std::string);
+	static void printStringConstants();
+	static std::string getStringConstantLabel();
+
+	////////////////////////////////////////////////////////////////////////////
+
+	////////////////////////// Statements //////////////////////////////////////
+
+	static void endStatement();
+
+	////////////////////////////////////////////////////////////////////////////
 
 	///////////////////////// Initialize Assembly //////////////////////////////
 
@@ -80,12 +116,14 @@ public:
 
 	//////////////////////////// Read and Write ////////////////////////////////
 
-	static void write(std::vector<Expression*>* expressionList);
+	static void write(std::deque<Expression*>* expressionList);
 	static void writeInteger(int location);
 	static void writeCharacter(int location);
-	static void writeString(std::string label);
-	static Expression* read(Expression* expression);
-	static Expression* readInteger(int location);
+	static void writeString(int location);
+	static void read(std::deque<Variable*>*);
+	static void readInteger(Variable* variable);
+	static void readString();
+	static void readCharacter(Variable* variable);
 
 	////////////////////////////////////////////////////////////////////////////
 
@@ -97,6 +135,9 @@ public:
 	static int lookup(Expression* expression);
 	static std::pair<int,int> lookupExpression(std::string name);
 	static Expression* eval(Expression* left, Expression* right, std::string operation);
+	static Expression* evalMult(Expression* left, Expression* right);
+	static Expression* evalDiv(Expression* left, Expression* right);
+	static Expression* evalMod(Expression* left, Expression* right);
 	static Expression* load(int location);
 	static Expression* load(std::string name);
 	static Expression* loadImmediateInt(int value);

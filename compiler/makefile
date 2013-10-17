@@ -38,13 +38,33 @@ clean:
 
 	rm -f *.tar
 
+	rm -f *.asm
+
+mars: cpsl.asm
+	java -jar mars.jar cpsl.asm
+
 tar: clean
 	tar -cvzf alanCompiler.tar ../compiler/*
 
 test: all
 	./cpsl test/test_expressions
+	java -jar mars.jar cpsl.asm
 	./cpsl test/test_personnel
+	java -jar mars.jar cpsl.asm
 	./cpsl test/test_factorial
+	java -jar mars.jar cpsl.asm
+
+test_expressions: all
+	./cpsl test/test_expressions
+	java -jar mars.jar cpsl.asm
+
+test_factorial: all
+	./cpsl test/test_factorial
+	java -jar mars.jar cpsl.asm
+
+test_personnel: all
+	./cpsl test/test_personnel
+	java -jar mars.jar cpsl.asm
 
 lex: cpsl.l
 	flex -f cpsl.l
