@@ -371,8 +371,7 @@ Variable* SymbolTable::makeLvalue(std::string identifier) {
 Expression* SymbolTable::lValueToExpression(Variable* variable) {
 	std::ofstream& outFile = getInstance()->getFileStream();
 
-	outFile << std::endl
-			<< "\t# loading an lvalue into a register." << std::endl;
+	outFile << "\t# lvalue to reg." << std::endl;
 
 	Expression* expression = load(variable->location);
 	expression->type = variable->type;
@@ -380,20 +379,10 @@ Expression* SymbolTable::lValueToExpression(Variable* variable) {
 }
 
 Expression* SymbolTable::integerConstToExpression(int value) {
-	std::ofstream& outFile = getInstance()->getFileStream();
-
-	outFile << std::endl
-			<< "\t# loading a constant integer into a register." << std::endl;
-
 	return loadImmediateInt(value);
 }
 
 Expression* SymbolTable::charConstToExpression(std::string value) {
-	std::ofstream& outFile = getInstance()->getFileStream();
-
-	outFile << std::endl
-			<< "\t# loading a constant character into a register." << std::endl;
-
 	return loadImmediateChar(value);
 }
 
@@ -404,9 +393,7 @@ Expression* SymbolTable::stringConstToExpression(std::string value) {
 
 	std::ofstream& outFile = getInstance()->getFileStream();
 
-	outFile << std::endl
-			<< "\t# loading a constant string into a register." << std::endl
-			<< "\tla\t$" << location << ", " << label << std::endl
+	outFile << "\tla\t$" << location << ", " << label << "\t # const str to reg." << std::endl
 			<< std::endl;
 
 	Expression* expression = new Expression(location);
@@ -564,9 +551,7 @@ void SymbolTable::assignment(Variable* variable, Expression* expression) {
 
 	std::ostream& outFile = getInstance()->getFileStream();
 
-	outFile << std::endl
-			<< "\tsw\t$" << expLoc << ", " << varLoc << "($sp)" << "\t# assignment statement." << std::endl
-			<< std::endl;
+	outFile << "\tsw\t$" << expLoc << ", " << varLoc << "($sp)" << "\t# assignment statement." << std::endl;
 }
 
 ////////////////////////// Strings //////////////////////////////////////
@@ -600,8 +585,7 @@ std::string SymbolTable::getStringConstantLabel() {
 void SymbolTable::endStatement() {
 	std::ofstream& outFile = getInstance()->getFileStream();
 
-	outFile << std::endl
-			<< "# this is the end of a statement." << std::endl
+	outFile << "\t# this is the end of a statement." << std::endl
 			<< std::endl;
 
 	currentRegister = 8;
@@ -668,9 +652,7 @@ void SymbolTable::write(std::deque<Expression*>* expressionList) {
 void SymbolTable::writeInteger(int location) {
 	std::ofstream& outFile = getInstance()->getFileStream();
 
-	outFile << std::endl
-		  	<< "# Writing an integer to the console." << std::endl
-		  	<< "\tli	$v0, 1" << std::endl
+	outFile << "\tli	$v0, 1" << "\t# write int." << std::endl
 		  	<< "\tmove	$a0, $" << location << std::endl
 		  	<< "\tsyscall" << std::endl;
 }
@@ -678,9 +660,7 @@ void SymbolTable::writeInteger(int location) {
 void SymbolTable::writeCharacter(int location) {
 	std::ofstream& outFile = getInstance()->getFileStream();
 
-	outFile << std::endl
-			<< "# Writing a character to the console." << std::endl
-			<< "\tli	$v0, 11" << std::endl
+	outFile << "\tli	$v0, 11" << "\t# write char." << std::endl
 			<< "\tmove	$a0, $" << location << std::endl
 			<< "\tsyscall" << std::endl;
 }
@@ -688,9 +668,7 @@ void SymbolTable::writeCharacter(int location) {
 void SymbolTable::writeString(int location) {
 	std::ofstream& outFile = getInstance()->getFileStream();
 
-	outFile << std::endl
-			<< "# Writing a string to the console." << std::endl
-			<< "\tli	$v0, 4" << std::endl
+	outFile << "\tli	$v0, 4" << "\t# wrtie string." << std::endl
 			<< "\tmove	$a0, $" << location << std::endl
 			<< "\tsyscall" << std::endl;
 }
@@ -714,9 +692,7 @@ void SymbolTable::read(std::deque<Variable*>* variableList) {
 void SymbolTable::readInteger(Variable* variable) {
 	std::ofstream& outFile = getInstance()->getFileStream();
 
-	outFile << std::endl
-			<< "# Reading an integer from the console." << std::endl
-			<< "\tli	$v0, 5" << std::endl
+	outFile << "\tli	$v0, 5" << "\t# read int." << std::endl
 			<< "\tsyscall" << std::endl
 			<< "\tsw	$v0, " << variable->location << "($sp)" << std::endl;
 }
@@ -736,9 +712,7 @@ void SymbolTable::readString() {
 void SymbolTable::readCharacter(Variable* variable) {
 	std::ofstream& outFile = getInstance()->getFileStream();
 
-	outFile << std::endl
-			<< "# Reading a character from the console." << std::endl
-			<< "\tli	$v0, 12" << std::endl
+	outFile << "\tli	$v0, 12" << "\t# read char." << std::endl
 			<< "\tsyscall" << std::endl
 			<< "\tsw	$v0, " << variable->location << "($sp)" << std::endl;
 }
@@ -859,7 +833,7 @@ Expression* SymbolTable::loadImmediateInt(int value) {
 
 	std::ofstream& outFile = getInstance()->getFileStream();
 
-	outFile << "\tli	$" << location << ", " << value << std::endl;
+	outFile << "\tli	$" << location << ", " << value << "\t# load const int." << std::endl;
 	
 	Expression* expression = new Expression(location);
 	expression->type = dynamic_cast<Type*>(lookup("integer"));
@@ -871,7 +845,7 @@ Expression* SymbolTable::loadImmediateChar(std::string value) {
 	
 	std::ofstream& outFile = getInstance()->getFileStream();
 
-	outFile << "\tli	$" << location << ", " << value << std::endl;
+	outFile << "\tli	$" << location << ", " << value << "\t# load const char." << std::endl;
 	
 	Expression* expression = new Expression(location);
 	expression->type = dynamic_cast<Type*>(lookup("char"));

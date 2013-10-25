@@ -1,12 +1,18 @@
 VAR 
-	i : integer;
+	i,j : integer;
 
 BEGIN
 
 i:= 12;
 
+
 while i <= 20 do $pad with spaces
-	write(i,'\n');
+	write(i,'\n',"Going into inner while.\n");
+	j:=i;
+	while(j >= 0) do
+		write(j,'\n');
+		j := j-1;
+	end;
 	i := i + 1;
   end;
 
