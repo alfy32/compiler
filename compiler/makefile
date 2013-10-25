@@ -75,6 +75,10 @@ for: all
 	./cpsl test/for_statements
 	java -jar mars.jar cpsl.asm
 
+while: all
+	./cpsl test/while_statements
+	java -jar mars.jar cpsl.asm
+
 lex: cpsl.l
 	flex -f cpsl.l
 	g++ -std=c++11 lex.yy.c -o lex

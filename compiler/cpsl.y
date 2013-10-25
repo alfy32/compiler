@@ -229,7 +229,16 @@ Else:           ELSE_SYM StatementSequence          { SymbolTable::elseStatement
                 |
                 ;
 
-WhileStatement: WHILE_SYM Expression DO_SYM StatementSequence END_SYM 
+WhileStatement: WhileInit WhileBranch DO_SYM StatementSequence WhileRepeat 
+                ;
+
+WhileInit:      WHILE_SYM       { SymbolTable::whileInit(); }
+                ;
+
+WhileBranch:    Expression      { SymbolTable::whileBranch($1); }
+                ;
+
+WhileRepeat:    END_SYM         { SymbolTable::whileRepeat(); }
                 ;
 
 RepeatStatement: REPEAT_SYM StatementSequence UNTIL_SYM Expression

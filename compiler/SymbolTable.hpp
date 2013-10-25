@@ -33,6 +33,19 @@ public:
 	}
 };
 
+class While {
+	static int labelCount;
+public:
+	std::string whileLabel;
+	std::string endLabel;
+
+	While() {
+		whileLabel = "WHILE" + std::to_string(labelCount);
+		endLabel = "END_WHILE" + std::to_string(labelCount);
+		labelCount++;
+	}
+};
+
 class Table {
 public: 
 	std::map<std::string, Symbol*> tableMap;
@@ -200,6 +213,16 @@ public:
 	static void forLabel();
 	static void forEval(Expression*);
 	static void forEnd();
+
+	////////////////////////////////////////////////////////////////////////////
+
+	///////////////////////////// While Statements /////////////////////////////
+
+	std::deque<While> whileStack;
+
+	static void whileInit();
+	static void whileBranch(Expression*);
+	static void whileRepeat();
 
 	////////////////////////////////////////////////////////////////////////////
 };

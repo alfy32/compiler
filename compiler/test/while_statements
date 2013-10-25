@@ -1,0 +1,13 @@
+VAR 
+	i : integer;
+
+BEGIN
+
+i:= 12;
+
+while i <= 20 do $pad with spaces
+	write(i,'\n');
+	i := i + 1;
+  end;
+
+END.

@@ -3,6 +3,7 @@
 extern bool verbose;
 
 int For::labelCount = 1;
+int While::labelCount = 1;
 
 SymbolTable* SymbolTable::symbolTableInstance = NULL;
 
@@ -564,8 +565,7 @@ void SymbolTable::assignment(Variable* variable, Expression* expression) {
 	std::ostream& outFile = getInstance()->getFileStream();
 
 	outFile << std::endl
-			<< "# Storing the expression from it's register to the variable's offset."
-			<< "sw $" << expLoc << ", " << varLoc << "($sp)" << std::endl
+			<< "\tsw\t$" << expLoc << ", " << varLoc << "($sp)" << "\t# assignment statement." << std::endl
 			<< std::endl;
 }
 
@@ -1018,6 +1018,41 @@ void SymbolTable::forEnd() {
 
 	getInstance()->forStack.pop_back();	
 }
+
+////////////////////////////////////////////////////////////////////////////
+
+///////////////////////////// While Statements /////////////////////////////
+
+void SymbolTable::whileInit() {
+	std::ofstream& outFile = getInstance()->getFileStream();
+
+	While whileVar;
+
+	getInstance()->whileStack.push_back(whileVar);
+
+	outFile << whileVar.whileLabel << ":" << std::endl;
+}
+
+void SymbolTable::whileBranch(Expression* expression) {
+	std::ofstream& outFile = getInstance()->getFileStream();
+
+	While whileVar = getInstance()->whileStack.back();
+
+	outFile << "\tbeqz\t $" << expression->location << ", " << whileVar.endLabel << std::endl;
+}
+
+void SymbolTable::whileRepeat() {
+	std::ofstream& outFile = getInstance()->getFileStream();
+
+	While whileVar = getInstance()->whileStack.back();
+
+	outFile << "\tb\t" << whileVar.whileLabel << std::endl;
+
+	outFile << whileVar.endLabel << ":" << std::endl;
+
+	getInstance()->whileStack.pop_back();
+}
+
 
 ////////////////////////////////////////////////////////////////////////////
 
