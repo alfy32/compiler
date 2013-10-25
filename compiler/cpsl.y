@@ -206,18 +206,27 @@ Statement:      Assignemnt
                 | NullStatement     
                 ;
 
-Assignemnt:     LValue ASSIGNMENT_SYM Expression 
+Assignemnt:     LValue ASSIGNMENT_SYM Expression    { SymbolTable::assignment($1, $3); }
                 ;
 
-IfStatement:    IF_SYM Expression THEN_SYM StatementSequence SubElseIf SubElse END_SYM
+IfStatement:    If Then ElseIfThen Else END_SYM     { SymbolTable::afterIf(); }
                 ;
 
-SubElseIf:      ELSEIF_SYM Expression THEN_SYM StatementSequence SubElseIf
-                | /* nothing */
+If:             IF_SYM Expression                   { SymbolTable::ifStatement($2); }
                 ;
 
-SubElse:        ELSE_SYM StatementSequence
-                | /* nothing */
+Then:           THEN_SYM StatementSequence          { SymbolTable::thenStatement(); }
+                ;
+
+ElseIfThen:     ElseIf Then ElseIfThen              
+                | 
+                ;
+
+ElseIf:         ELSEIF_SYM Expression               { SymbolTable::ifStatement($2); }
+                ;
+
+Else:           ELSE_SYM StatementSequence          { SymbolTable::elseStatement(); }
+                |
                 ;
 
 WhileStatement: WHILE_SYM Expression DO_SYM StatementSequence END_SYM 
@@ -226,11 +235,24 @@ WhileStatement: WHILE_SYM Expression DO_SYM StatementSequence END_SYM
 RepeatStatement: REPEAT_SYM StatementSequence UNTIL_SYM Expression
                 ;
 
-ForStatement:   ForSig StatementSequence END_SYM 
+ForStatement:   ForInit ForLabel ForEval DO_SYM StatementSequence ForEnd 
                 ;
 
-ForSig:         FOR_SYM IDENT_SYM ASSIGNMENT_SYM Expression TO_SYM Expression DO_SYM        //{ SymbolTable::forStatement($2, $4, $6, "UP"); }
-                | FOR_SYM IDENT_SYM ASSIGNMENT_SYM Expression DOWNTO_SYM Expression DO_SYM // { SymbolTable::forStatement($2, $4, $6, "DOWN"); }
+// ForSig:         FOR_SYM IDENT_SYM ASSIGNMENT_SYM Expression TO_SYM Expression DO_SYM        //{ SymbolTable::forStatement($2, $4, $6, "UP"); }
+//                 | FOR_SYM IDENT_SYM ASSIGNMENT_SYM Expression DOWNTO_SYM Expression DO_SYM // { SymbolTable::forStatement($2, $4, $6, "DOWN"); }
+//                 ;
+
+ForInit:        FOR_SYM IDENT_SYM ASSIGNMENT_SYM Expression         { SymbolTable::initFor($2,$4); }
+                ;
+
+ForLabel:       TO_SYM                          { SymbolTable::forLabel(); }
+                | DOWNTO_SYM                    { SymbolTable::forLabel(); }
+                ;
+
+ForEval:        Expression                      { SymbolTable::forEval($1); }
+                ;
+
+ForEnd:         END_SYM                         { SymbolTable::forEnd(); }            
                 ;
 
 StopStatement:  STOP_SYM
@@ -291,7 +313,6 @@ Expression:     Expression OR_SYM Expression            { $$ = SymbolTable::expr
                 | INT_CONST_SYM     { $$ = SymbolTable::integerConstToExpression($1); }
                 | CHAR_CONST_SYM    { $$ = SymbolTable::charConstToExpression($1); }
                 | STR_CONST_SYM     { $$ = SymbolTable::stringConstToExpression($1); }
-              //  | IDENT_SYM         { std::cout << "This doesn't work right now......" << std::endl; $$ = SymbolTable::identToExpression($1); }
                 ;
 
 /*Expression:     NEG_SYM Expression

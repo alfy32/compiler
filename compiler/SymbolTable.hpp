@@ -18,6 +18,21 @@ public:
 	int getLocation();
 };
 
+class For {
+	static int labelCount;
+public:
+	Variable* var;
+	std::string forLabel;
+	std::string endLabel;
+
+	For(Variable* variable) {
+		var = variable;
+		forLabel = "FOR" + std::to_string(labelCount);
+		endLabel = "END_FOR" + std::to_string(labelCount);
+		labelCount++;
+	}
+};
+
 class Table {
 public: 
 	std::map<std::string, Symbol*> tableMap;
@@ -98,6 +113,9 @@ public:
 	static std::deque<std::string>* makeIdentList(std::string identifier, std::deque<std::string>* identList);
 	static std::deque<std::pair<std::deque<std::string>, Type*> >* makeRecordItem(std::deque<std::string>* identList, Type* type, std::deque<std::pair<std::deque<std::string>, Type*> >* recordItem);
 
+
+	static void assignment(Variable*, Expression*);
+
 	////////////////////////// Strings //////////////////////////////////////
 
 	static std::string addStringConstant(std::string);
@@ -146,6 +164,42 @@ public:
 	static Expression* load(std::string name);
 	static Expression* loadImmediateInt(int value);
 	static Expression* loadImmediateChar(std::string value);
+	static void store(Variable*, Expression*);
+
+	////////////////////////////////////////////////////////////////////////////
+
+	/////////////////////////////// If Statements //////////////////////////////
+
+	std::deque<std::string> elseStack;
+	std::deque<std::string> endStack;
+
+	static int elseCount;
+	static int endCount;
+
+	static void pushElse();
+	static void pushEnd();
+	static void popElse();
+	static void popEnd();
+	static std::string elseFront();
+	static std::string endFront();
+
+	static void afterIf();
+	static void ifStatement(Expression*);
+	static void thenStatement();
+	static void elseIfStatement(Expression*);
+	static void elseStatement();
+
+	////////////////////////////////////////////////////////////////////////////
+
+	/////////////////////////////// For Statements /////////////////////////////
+
+
+	std::deque<For> forStack;
+
+	static void initFor(std::string identifier, Expression*);
+	static void forLabel();
+	static void forEval(Expression*);
+	static void forEnd();
 
 	////////////////////////////////////////////////////////////////////////////
 };

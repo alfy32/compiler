@@ -2,6 +2,7 @@
 
 extern bool verbose;
 
+int For::labelCount = 1;
 
 SymbolTable* SymbolTable::symbolTableInstance = NULL;
 
@@ -370,7 +371,7 @@ Expression* SymbolTable::lValueToExpression(Variable* variable) {
 	std::ofstream& outFile = getInstance()->getFileStream();
 
 	outFile << std::endl
-			<< "# loading an lvalue into a register." << std::endl;
+			<< "\t# loading an lvalue into a register." << std::endl;
 
 	Expression* expression = load(variable->location);
 	expression->type = variable->type;
@@ -381,7 +382,7 @@ Expression* SymbolTable::integerConstToExpression(int value) {
 	std::ofstream& outFile = getInstance()->getFileStream();
 
 	outFile << std::endl
-			<< "# loading a constant integer into a register." << std::endl;
+			<< "\t# loading a constant integer into a register." << std::endl;
 
 	return loadImmediateInt(value);
 }
@@ -390,7 +391,7 @@ Expression* SymbolTable::charConstToExpression(std::string value) {
 	std::ofstream& outFile = getInstance()->getFileStream();
 
 	outFile << std::endl
-			<< "# loading a constant character into a register." << std::endl;
+			<< "\t# loading a constant character into a register." << std::endl;
 
 	return loadImmediateChar(value);
 }
@@ -403,8 +404,8 @@ Expression* SymbolTable::stringConstToExpression(std::string value) {
 	std::ofstream& outFile = getInstance()->getFileStream();
 
 	outFile << std::endl
-			<< "# loading a constant string into a register." << std::endl
-			<< "la $" << location << ", " << label << std::endl
+			<< "\t# loading a constant string into a register." << std::endl
+			<< "\tla\t$" << location << ", " << label << std::endl
 			<< std::endl;
 
 	Expression* expression = new Expression(location);
@@ -555,6 +556,19 @@ std::deque<std::pair<std::deque<std::string>, Type*> >* SymbolTable::makeRecordI
 	return recordItem;
 }
 
+
+void SymbolTable::assignment(Variable* variable, Expression* expression) {
+	int varLoc = variable->location;
+	int expLoc = expression->location;
+
+	std::ostream& outFile = getInstance()->getFileStream();
+
+	outFile << std::endl
+			<< "# Storing the expression from it's register to the variable's offset."
+			<< "sw $" << expLoc << ", " << varLoc << "($sp)" << std::endl
+			<< std::endl;
+}
+
 ////////////////////////// Strings //////////////////////////////////////
 
 std::string SymbolTable::addStringConstant(std::string value) {
@@ -656,10 +670,9 @@ void SymbolTable::writeInteger(int location) {
 
 	outFile << std::endl
 		  	<< "# Writing an integer to the console." << std::endl
-		  	<< "li	$v0, 1" << std::endl
-		  	<< "move	$a0, $" << location << std::endl
-		  	<< "syscall" << std::endl
-		  	<< std::endl;
+		  	<< "\tli	$v0, 1" << std::endl
+		  	<< "\tmove	$a0, $" << location << std::endl
+		  	<< "\tsyscall" << std::endl;
 }
 
 void SymbolTable::writeCharacter(int location) {
@@ -667,10 +680,9 @@ void SymbolTable::writeCharacter(int location) {
 
 	outFile << std::endl
 			<< "# Writing a character to the console." << std::endl
-			<< "li	$v0, 11" << std::endl
-			<< "move	$a0, $" << location << std::endl
-			<< "syscall" << std::endl
-			<< std::endl;
+			<< "\tli	$v0, 11" << std::endl
+			<< "\tmove	$a0, $" << location << std::endl
+			<< "\tsyscall" << std::endl;
 }
 
 void SymbolTable::writeString(int location) {
@@ -678,10 +690,9 @@ void SymbolTable::writeString(int location) {
 
 	outFile << std::endl
 			<< "# Writing a string to the console." << std::endl
-			<< "li	$v0, 4" << std::endl
-			<< "move	$a0, $" << location << std::endl
-			<< "syscall" << std::endl
-			<< std::endl;
+			<< "\tli	$v0, 4" << std::endl
+			<< "\tmove	$a0, $" << location << std::endl
+			<< "\tsyscall" << std::endl;
 }
 
 void SymbolTable::read(std::deque<Variable*>* variableList) {
@@ -705,10 +716,9 @@ void SymbolTable::readInteger(Variable* variable) {
 
 	outFile << std::endl
 			<< "# Reading an integer from the console." << std::endl
-			<< "li		$v0, 5" << std::endl
-			<< "syscall" << std::endl
-			<< "sw	$v0, " << variable->location << "($sp)" << std::endl
-			<< std::endl;
+			<< "\tli	$v0, 5" << std::endl
+			<< "\tsyscall" << std::endl
+			<< "\tsw	$v0, " << variable->location << "($sp)" << std::endl;
 }
 
 void SymbolTable::readString() {
@@ -720,8 +730,7 @@ void SymbolTable::readString() {
 	// 		<< "# Reading an integer from the console." << std::endl
 	// 		<< "li		$v0, 5" << std::endl
 	// 		<< "syscall" << std::endl
-	// 		<< "move	$" << location << ", $v0" << std::endl
-	// 		<< std::endl;
+	// 		<< "move	$" << location << ", $v0" << std::endl;
 }
 
 void SymbolTable::readCharacter(Variable* variable) {
@@ -729,10 +738,9 @@ void SymbolTable::readCharacter(Variable* variable) {
 
 	outFile << std::endl
 			<< "# Reading a character from the console." << std::endl
-			<< "li		$v0, 12" << std::endl
-			<< "syscall" << std::endl
-			<< "sw	$v0, " << variable->location << "($sp)" << std::endl
-			<< std::endl;
+			<< "\tli	$v0, 12" << std::endl
+			<< "\tsyscall" << std::endl
+			<< "\tsw	$v0, " << variable->location << "($sp)" << std::endl;
 }
 
 ////////////////////////////////////////////////////////////////////////////
@@ -762,11 +770,10 @@ Expression* SymbolTable::eval(Expression* left, Expression* right, std::string o
 	std::ofstream& outFile = getInstance()->getFileStream();
 
 	outFile << std::endl
-			<< "# evaluating an expression. " << std::endl
-			<< operation << " $" << resultLocation
+			<< "\t" << operation << " $" << resultLocation 
 			<< ", $" << leftLocation 
 			<< ", $" << rightLocation
-			<< std::endl;
+			<< "\t# evaluating an expression. " << std::endl;
 
 	Expression* expression = new Expression(resultLocation);
 	expression->type = left->type;
@@ -781,9 +788,8 @@ Expression* SymbolTable::evalMult(Expression* left, Expression* right) {
 	std::ofstream& outFile = getInstance()->getFileStream();
 
 	outFile << std::endl
-			<< "# evaluating multiply expression. " << std::endl
-			<< "mult $" << leftLocation << ", $" << rightLocation << std::endl
-			<< "mflo $" << resultLocation << std::endl
+			<< "\tmult	$" << leftLocation << ", $" << rightLocation << "\t# evaluating multiply expression. " << std::endl
+			<< "\tmflo	$" << resultLocation << std::endl
 			<< std::endl;
 
 	Expression* expression = new Expression(resultLocation);
@@ -799,9 +805,8 @@ Expression* SymbolTable::evalDiv(Expression* left, Expression* right) {
 	std::ofstream& outFile = getInstance()->getFileStream();
 
 	outFile << std::endl
-			<< "# evaluating divide expression. " << std::endl
-			<< "div $" << leftLocation << ", $" << rightLocation << std::endl
-			<< "mflo $" << resultLocation << std::endl
+			<< "\tdiv\t$" << leftLocation << ", $" << rightLocation << "\t# evaluating divide expression. " << std::endl
+			<< "\tmflo\t$" << resultLocation << std::endl
 			<< std::endl;
 
 	Expression* expression = new Expression(resultLocation);
@@ -817,9 +822,8 @@ Expression* SymbolTable::evalMod(Expression* left, Expression* right) {
 	std::ofstream& outFile = getInstance()->getFileStream();
 
 	outFile << std::endl
-			<< "# evaluating mod expression. " << std::endl
-			<< "div $" << leftLocation << ", $" << rightLocation << std::endl
-			<< "mfhi $" << resultLocation << std::endl
+			<< "\tdiv\t$" << leftLocation << ", $" << rightLocation << "\t# evaluating mod expression. " << std::endl
+			<< "\tmfhi\t$" << resultLocation << std::endl
 			<< std::endl;
 
 	Expression* expression = new Expression(resultLocation);
@@ -831,7 +835,7 @@ Expression* SymbolTable::load(int location) {
 	int resultLocation = getRegister();
 	std::ofstream& outFile = getInstance()->getFileStream();
 
-	outFile << "lw $" << resultLocation
+	outFile << "\tlw\t$" << resultLocation
 			<< ", " << location << "($sp)"
 			<< std::endl;
 
@@ -855,8 +859,7 @@ Expression* SymbolTable::loadImmediateInt(int value) {
 
 	std::ofstream& outFile = getInstance()->getFileStream();
 
-	outFile << "li	$" << location << ", " << value << std::endl 
-			<< std::endl;
+	outFile << "\tli	$" << location << ", " << value << std::endl;
 	
 	Expression* expression = new Expression(location);
 	expression->type = dynamic_cast<Type*>(lookup("integer"));
@@ -868,24 +871,154 @@ Expression* SymbolTable::loadImmediateChar(std::string value) {
 	
 	std::ofstream& outFile = getInstance()->getFileStream();
 
-	outFile << "li	$" << location << ", " << value << std::endl 
-			<< std::endl;
+	outFile << "\tli	$" << location << ", " << value << std::endl;
 	
 	Expression* expression = new Expression(location);
 	expression->type = dynamic_cast<Type*>(lookup("char"));
 	return expression;
 }
 
+void SymbolTable::store(Variable* variable, Expression* expression) {
+	if(variable->type != expression->type) {
+		yyerror("Type mismatch on the store.");
+	}
+
+	std::ofstream& outFile = getInstance()->getFileStream();
+
+	outFile << "\tsw	$" << expression->location << ", " << variable->location << "($sp)" << std::endl;
+}
+
 ////////////////////////////////////////////////////////////////////////////
 
-/*	strings
+/////////////////////////////// If Statements //////////////////////////////
 
-	.data 
+int SymbolTable::elseCount = 1;
+int SymbolTable::endCount = 1;
 
-	string1: asciz "STRING"
+void SymbolTable::pushElse() {
+	getInstance()->elseStack.push_front("ELSE" + std::to_string(elseCount++));
+}
 
-	GA: 
-	.space
-*/
+void SymbolTable::pushEnd() {
+	getInstance()->endStack.push_front("END" + std::to_string(endCount++));
+}
+
+void SymbolTable::popElse() {
+	getInstance()->elseStack.pop_front();
+}
+
+void SymbolTable::popEnd() {
+	getInstance()->endStack.pop_front();
+}
+
+std::string SymbolTable::elseFront() {
+	return getInstance()->elseStack.front();
+}
+
+std::string SymbolTable::endFront() {
+	return getInstance()->endStack.front();
+}
+
+void SymbolTable::afterIf() {
+	std::ofstream& outFile = getInstance()->getFileStream();
+
+	while(getInstance()->endStack.size() > 0) {
+		outFile << endFront() << ":" << std::endl;
+		popEnd();
+	}
+}
+
+void SymbolTable::ifStatement(Expression* expression) {
+	if(expression->type != lookup("boolean")) {
+		yyerror("You must have a boolean expression in an if statement.");
+	}	
+
+	std::ofstream& outFile = getInstance()->getFileStream();
+
+	pushElse();
+
+	outFile << "\tbeqz $" << expression->location << " " << elseFront() << "\t# if statement." << std::endl
+			<< std::endl
+			<< "# then statement." << std::endl;
+}
+
+void SymbolTable::thenStatement() {
+	std::ofstream& outFile = getInstance()->getFileStream();
+
+	pushEnd();
+
+	outFile << "\tj " << endFront() << std::endl
+			<< elseFront() << ":" << std::endl;
+
+	popElse();
+}
+
+void SymbolTable::elseIfStatement(Expression* expression) {
+	std::ofstream& outFile = getInstance()->getFileStream();
+
+}
+
+void SymbolTable::elseStatement() {
+	std::ofstream& outFile = getInstance()->getFileStream();
+}
+
+
+////////////////////////////////////////////////////////////////////////////
+
+/////////////////////////////// For Statements /////////////////////////////
+
+void SymbolTable::initFor(std::string identifier, Expression* expression) {
+	Variable* variable = dynamic_cast<Variable*>(lookup(identifier));
+
+	if(variable->type != expression->type) {
+		yyerror("We have a problem. The initial variable of this for loop is being assigned the wrong type.");
+	}
+
+	For forVar(variable);
+
+	getInstance()->forStack.push_back(forVar);
+
+	store(variable, expression);
+}
+
+void SymbolTable::forLabel() {
+	std::ofstream& outFile = getInstance()->getFileStream();
+
+	std::string forLabel = getInstance()->forStack.back().forLabel;	
+
+	outFile << forLabel << ":" << std::endl;
+}
+
+void SymbolTable::forEval(Expression* expression) {
+	std::ofstream& outFile = getInstance()->getFileStream();
+
+	For forVar = getInstance()->forStack.back();
+
+	Expression* counter = load(forVar.var->location);
+	counter->type = forVar.var->type;
+
+	outFile << "\tbgt $" << counter->location << ", $" << expression->location << ", " << forVar.endLabel << std::endl;
+}
+
+void SymbolTable::forEnd() {
+	std::ofstream& outFile = getInstance()->getFileStream();
+
+	For forVar = getInstance()->forStack.back();
+
+	Expression* expression = load(forVar.var->location);
+	expression->type = forVar.var->type;
+	int location = expression->location;
+
+	outFile << "\taddi	$" << location << ", $" << location << ", 1" << std::endl;
+
+	store(forVar.var, expression);
+
+	outFile	<< "\tb\t" << forVar.forLabel << std::endl
+			<< forVar.endLabel << ":" << std::endl;
+
+	getInstance()->forStack.pop_back();	
+}
+
+////////////////////////////////////////////////////////////////////////////
 
 //// End SymbolTable ////

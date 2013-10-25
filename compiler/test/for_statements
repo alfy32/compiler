@@ -1,0 +1,25 @@
+CONST
+	NAMELEN = 20;
+
+VAR 
+	i : integer;
+
+BEGIN
+
+
+for i := 1 to 20 do
+	write(i);
+	if(i < 12)
+		then write(" is less than 12\n");
+	else
+		write(" is not less than 12\n");
+	end;
+end;
+
+write("\nThis is the middle.\n\n");
+
+for i := 12 to 25 do
+	write(i, '\n');
+end;
+
+END.

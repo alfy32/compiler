@@ -67,6 +67,14 @@ personnel: all
 	./cpsl test/test_personnel
 	java -jar mars.jar cpsl.asm
 
+if: test/if_statements
+	./cpsl test/if_statements
+	java -jar mars.jar cpsl.asm
+
+for: all
+	./cpsl test/for_statements
+	java -jar mars.jar cpsl.asm
+
 lex: cpsl.l
 	flex -f cpsl.l
 	g++ -std=c++11 lex.yy.c -o lex

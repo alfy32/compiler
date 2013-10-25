@@ -1,0 +1,45 @@
+var 
+	a,b,c,d,e,f : integer;
+
+BEGIN
+
+	write("Enter A: ");
+	read(a);
+	write("Enter B: ");
+	read(b);
+
+	if a < b
+	  	then write(a, " < ", b, '\n');
+
+	  	write("Enter C: ");
+		read(c);
+		write("Enter D: ");
+		read(d);
+
+		if c <= d 
+			then write(c, " <= ", d, '\n');
+
+			write("Enter E: ");
+			read(e);
+			write("Enter F: ");
+			read(f);
+
+			if e > f
+				then write(e, " > ", f, '\n');
+			else
+				write(e, " ! > ", f, '\n');
+			end;
+
+	  	end;
+
+	elseif a = b
+		then write(a, " = ", b, '\n');
+
+	elseif a > b
+		then write(a, " > ", b, '\n');
+			  	
+	else 
+		write(a, " > ", b, '\n');
+	end;
+
+END.
