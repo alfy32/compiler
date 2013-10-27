@@ -196,7 +196,7 @@ StatementSequence: Statement
 Statement:      Assignemnt          
                 | IfStatement       { SymbolTable::endStatement(); }
                 | WhileStatement    { SymbolTable::endStatement(); }
-                | RepeatStatement   
+                | RepeatStatement   { SymbolTable::endStatement(); }
                 | ForStatement      { SymbolTable::endStatement(); }
                 | StopStatement     
                 | ReturnStatement   
@@ -241,15 +241,14 @@ WhileBranch:    Expression      { SymbolTable::whileBranch($1); }
 WhileRepeat:    END_SYM         { SymbolTable::whileRepeat(); }
                 ;
 
-RepeatStatement: REPEAT_SYM StatementSequence UNTIL_SYM Expression
+RepeatStatement: RepeatInit StatementSequence UNTIL_SYM Expression  { SymbolTable::repeatEnd($4); }
+                ;
+
+RepeatInit:     REPEAT_SYM      { SymbolTable::repeatInit(); }
                 ;
 
 ForStatement:   ForInit ForLabel ForEval DO_SYM StatementSequence ForEnd 
                 ;
-
-// ForSig:         FOR_SYM IDENT_SYM ASSIGNMENT_SYM Expression TO_SYM Expression DO_SYM        //{ SymbolTable::forStatement($2, $4, $6, "UP"); }
-//                 | FOR_SYM IDENT_SYM ASSIGNMENT_SYM Expression DOWNTO_SYM Expression DO_SYM // { SymbolTable::forStatement($2, $4, $6, "DOWN"); }
-//                 ;
 
 ForInit:        FOR_SYM IDENT_SYM ASSIGNMENT_SYM Expression         { SymbolTable::initFor($2,$4); }
                 ;

@@ -47,6 +47,19 @@ public:
 	}
 };
 
+class Repeat {
+	static int labelCount;
+public:
+	std::string repeatLabel;
+	std::string endLabel;
+
+	Repeat() {
+		repeatLabel = "REPEAT" + std::to_string(labelCount);
+		endLabel = "END_REPEAT" + std::to_string(labelCount);
+		labelCount++;
+	}
+};
+
 class Table {
 public: 
 	std::map<std::string, Symbol*> tableMap;
@@ -207,7 +220,6 @@ public:
 
 	/////////////////////////////// For Statements /////////////////////////////
 
-
 	std::deque<For> forStack;
 
 	static void initFor(std::string identifier, Expression*);
@@ -224,6 +236,16 @@ public:
 	static void whileInit();
 	static void whileBranch(Expression*);
 	static void whileRepeat();
+
+	////////////////////////////////////////////////////////////////////////////
+
+	//////////////////////////// Repeat Statements /////////////////////////////
+
+	std::deque<Repeat> repeatStack;
+
+	static void repeatInit();
+	static void repeatEnd(Expression*);
+	// static void whileRepeat();
 
 	////////////////////////////////////////////////////////////////////////////
 };

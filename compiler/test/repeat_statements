@@ -1,0 +1,25 @@
+VAR 
+	i,j : integer;
+
+BEGIN
+
+i:= 12;
+j:= 12;
+
+write("i = 12; j = 12;\n");
+write("Repeat 1: i < 5\n");
+write("Repeat 2: j < 6\n");
+write("Repeat 1: j:= i;\n");
+write('\n');
+
+repeat 
+	write("\ni: ", i, "\tj:  ");
+	repeat 
+		write(j, " ");
+		j := j - 1;
+	until j < 6;
+	j := i;
+	i := i - 1;
+until i < 5;
+
+END.

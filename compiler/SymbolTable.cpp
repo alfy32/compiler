@@ -4,6 +4,7 @@ extern bool verbose;
 
 int For::labelCount = 1;
 int While::labelCount = 1;
+int Repeat::labelCount = 1;
 
 SymbolTable* SymbolTable::symbolTableInstance = NULL;
 
@@ -668,7 +669,7 @@ void SymbolTable::writeCharacter(int location) {
 void SymbolTable::writeString(int location) {
 	std::ofstream& outFile = getInstance()->getFileStream();
 
-	outFile << "\tli	$v0, 4" << "\t# wrtie string." << std::endl
+	outFile << "\tli	$v0, 4" << "\t# write string." << std::endl
 			<< "\tmove	$a0, $" << location << std::endl
 			<< "\tsyscall" << std::endl;
 }
@@ -1040,6 +1041,29 @@ void SymbolTable::whileRepeat() {
 	getInstance()->whileStack.pop_back();
 }
 
+////////////////////////////////////////////////////////////////////////////
+
+//////////////////////////// Repeat Statements /////////////////////////////
+
+void SymbolTable::repeatInit() {
+	std::ofstream& outFile = getInstance()->getFileStream();
+
+	Repeat repeat;
+
+	getInstance()->repeatStack.push_back(repeat);
+
+	outFile << repeat.repeatLabel << ":" << std::endl;
+}
+
+void SymbolTable::repeatEnd(Expression* expression) {
+	std::ofstream& outFile = getInstance()->getFileStream();
+
+	Repeat repeat = getInstance()->repeatStack.back();
+
+	outFile << "\tbeqz\t$" << expression->location << ", " << repeat.repeatLabel << std::endl;
+
+	getInstance()->repeatStack.pop_back();
+}
 
 ////////////////////////////////////////////////////////////////////////////
 
