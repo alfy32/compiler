@@ -1067,4 +1067,11 @@ void SymbolTable::repeatEnd(Expression* expression) {
 
 ////////////////////////////////////////////////////////////////////////////
 
+void SymbolTable::stop() {
+	std::ofstream& outFile = getInstance()->getFileStream();
+
+	outFile << "\tli  \t$v0, 10		# stop" << std::endl
+			<< "\tsyscall" << std::endl;
+}
+
 //// End SymbolTable ////

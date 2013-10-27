@@ -198,7 +198,7 @@ Statement:      Assignemnt
                 | WhileStatement    { SymbolTable::endStatement(); }
                 | RepeatStatement   { SymbolTable::endStatement(); }
                 | ForStatement      { SymbolTable::endStatement(); }
-                | StopStatement     
+                | StopStatement     { SymbolTable::endStatement(); }
                 | ReturnStatement   
                 | ReadStatement     { SymbolTable::endStatement(); }
                 | WriteStatement    { SymbolTable::endStatement(); }
@@ -263,7 +263,7 @@ ForEval:        Expression                      { SymbolTable::forEval($1); }
 ForEnd:         END_SYM                         { SymbolTable::forEnd(); }            
                 ;
 
-StopStatement:  STOP_SYM
+StopStatement:  STOP_SYM    { SymbolTable::stop(); }
                 ;
 
 ReturnStatement: RETURN_SYM  
