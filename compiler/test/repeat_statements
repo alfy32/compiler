@@ -12,8 +12,6 @@ write("Repeat 2: j < 6\n");
 write("Repeat 1: j:= i;\n");
 write('\n');
 
-stop;
-
 repeat 
 	write("\ni: ", i, "\tj:  ");
 	repeat 
