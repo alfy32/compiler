@@ -955,9 +955,10 @@ void SymbolTable::initFor(std::string identifier, Expression* expression) {
 	store(variable, expression);
 }
 
-void SymbolTable::forLabel() {
+void SymbolTable::forLabel(std::string to) {
 	std::ofstream& outFile = getInstance()->getFileStream();
 
+	getInstance()->forStack.back().to = to;
 	std::string forLabel = getInstance()->forStack.back().forLabel;	
 
 	outFile << forLabel << ":" << std::endl;
@@ -971,7 +972,13 @@ void SymbolTable::forEval(Expression* expression) {
 	Expression* counter = load(forVar.var->location);
 	counter->type = forVar.var->type;
 
-	outFile << "\tbgt $" << counter->location << ", $" << expression->location << ", " << forVar.endLabel << std::endl;
+	if(forVar.to == "UP") {
+		outFile << "\tbgt $" << counter->location << ", $" << expression->location << ", " << forVar.endLabel << std::endl;
+	} else if(forVar.to == "DOWN") {
+		outFile << "\tblt $" << counter->location << ", $" << expression->location << ", " << forVar.endLabel << std::endl;
+	} else {
+		yyerror("We don't know if this is an up to or down to for loop.");
+	}
 }
 
 void SymbolTable::forEnd() {
@@ -983,7 +990,13 @@ void SymbolTable::forEnd() {
 	expression->type = forVar.var->type;
 	int location = expression->location;
 
-	outFile << "\taddi	$" << location << ", $" << location << ", 1" << std::endl;
+	if(forVar.to == "UP") {
+		outFile << "\taddi	$" << location << ", $" << location << ", 1" << std::endl;
+	} else if(forVar.to == "DOWN") {
+		outFile << "\tsubi	$" << location << ", $" << location << ", 1" << std::endl;
+	} else {
+		yyerror("We don't know if this is an up to or down to for loop.");
+	}
 
 	store(forVar.var, expression);
 

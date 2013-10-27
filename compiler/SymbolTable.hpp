@@ -24,6 +24,7 @@ public:
 	Variable* var;
 	std::string forLabel;
 	std::string endLabel;
+	std::string to;
 
 	For(Variable* variable) {
 		var = variable;
@@ -210,7 +211,7 @@ public:
 	std::deque<For> forStack;
 
 	static void initFor(std::string identifier, Expression*);
-	static void forLabel();
+	static void forLabel(std::string);
 	static void forEval(Expression*);
 	static void forEnd();
 

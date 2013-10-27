@@ -2,7 +2,7 @@ CONST
 	NAMELEN = 20;
 
 VAR 
-	i : integer;
+	i,j,k : integer;
 
 BEGIN
 
@@ -19,7 +19,26 @@ end;
 write("\nThis is the middle.\n\n");
 
 for i := 12 to 25 do
-	write(i, '\n');
+	write(i, ' ');
+end;
+
+write("\nTesting DOWN_TO\n\n");
+
+write("We are doing: \n");
+write(" i from 20 downto 15 \n");
+write(" j from 15 to i \n");
+write(" k from i-j downto 0\n");
+write('\n');
+
+for i := 20 downto 15 do
+	write("i: ", i, "\n");
+	for j := 15 to i do
+		write("  j: ", j, "    ");
+		for k := i - j downto 0 do
+			write(k, ' ');
+		end;
+		write('\n');
+	end;
 end;
 
 END.

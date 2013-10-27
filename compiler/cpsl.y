@@ -194,10 +194,10 @@ StatementSequence: Statement
                 ;
 
 Statement:      Assignemnt          
-                | IfStatement       
-                | WhileStatement    
+                | IfStatement       { SymbolTable::endStatement(); }
+                | WhileStatement    { SymbolTable::endStatement(); }
                 | RepeatStatement   
-                | ForStatement      
+                | ForStatement      { SymbolTable::endStatement(); }
                 | StopStatement     
                 | ReturnStatement   
                 | ReadStatement     { SymbolTable::endStatement(); }
@@ -254,8 +254,8 @@ ForStatement:   ForInit ForLabel ForEval DO_SYM StatementSequence ForEnd
 ForInit:        FOR_SYM IDENT_SYM ASSIGNMENT_SYM Expression         { SymbolTable::initFor($2,$4); }
                 ;
 
-ForLabel:       TO_SYM                          { SymbolTable::forLabel(); }
-                | DOWNTO_SYM                    { SymbolTable::forLabel(); }
+ForLabel:       TO_SYM                          { SymbolTable::forLabel("UP"); }
+                | DOWNTO_SYM                    { SymbolTable::forLabel("DOWN"); }
                 ;
 
 ForEval:        Expression                      { SymbolTable::forEval($1); }
