@@ -22,6 +22,7 @@ extern int lineNumber;
     Proc* procedureSig;
     Expression* expression;
     Variable* variable;
+    LValue* lvalue;
 
     std::deque<Symbol*>* symboldeque_val;
     std::deque<std::string>* identList;
@@ -30,13 +31,14 @@ extern int lineNumber;
 
     std::deque<Expression*>* expressionList;
     std::deque<Variable*>* variableList;
+    std::deque<LValue*>* lvalueList;
 }
 
 %type <const_val> ConstExpression
 %type <expression> Expression 
-%type <variable> LValue
+%type <lvalue> LValue
 %type <expressionList> ExpressionList 
-%type <variableList> LValueList
+%type <lvalueList> LValueList
 %type <identList> IdentList
 %type <recordItem> RecordItem FormalParameters
 %type <type_val> Type SimpleType ArrayType RecordType
@@ -273,8 +275,8 @@ ReturnStatement: RETURN_SYM
 ReadStatement:  READ_SYM L_PAREN_SYM LValueList R_PAREN_SYM    { SymbolTable::read($3); }
                 ;
 
-LValueList:      LValue                             { $$ = SymbolTable::makeVariableList($1, NULL); }
-                | LValue COMMA_SYM LValueList       { $$ = SymbolTable::makeVariableList($1, $3); }
+LValueList:      LValue                             { $$ = SymbolTable::makeLValueList($1, NULL); }
+                | LValue COMMA_SYM LValueList       { $$ = SymbolTable::makeLValueList($1, $3); }
                 ;
 
 WriteStatement: WRITE_SYM L_PAREN_SYM ExpressionList R_PAREN_SYM { SymbolTable::write($3); }
@@ -373,19 +375,22 @@ Expression9:    IDENT_SYM L_PAREN_SYM ExpressionList R_PAREN_SYM
                 ;*/
 
 
-LValue:         IDENT_SYM                       { $$ = SymbolTable::makeLvalue($1); }
-                | IDENT_SYM SubLValueStar       { $$ = SymbolTable::makeLvalue($1); }
+LValue:         IDENT_SYM                       { $$ = SymbolTable::makeLValue($1); }
+                | IDENT_SYM SubLValueStar       { $$ = SymbolTable::makeLValue($1); }
               /*  | IDENT_SYM DOT_SYM IDENT_SYM */
                 /*| LValue DOT_SYM LValue*/
                 /*| IDENT_SYM L_BRACKET_SYM Expression R_BRACKET_SYM*/
                 ;
 
+// LValue:         DOT_SYM IDENT_SYM
+//                 | 
+
 SubLValueStar:  SubLValue                       
                 | SubLValue SubLValueStar       
                 ;
 
-SubLValue:      DOT_SYM IDENT_SYM                          
-                | L_BRACKET_SYM Expression R_BRACKET_SYM    
+SubLValue:      DOT_SYM IDENT_SYM                          // { $<std::string*>$ = new std::string($2); }
+                | L_BRACKET_SYM Expression R_BRACKET_SYM   // { $<int>$ = $2; }
                 ;
 
 ConstExpression: ConstExpression OR_SYM ConstExpression             { $$ = SymbolTable::evalConstant($1,"|",$3); }

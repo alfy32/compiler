@@ -1,0 +1,10 @@
+CONST x = 5;
+VAR a,b,c:integer;
+BEGIN
+	a := 1;
+	b := x;
+	c := b;
+	write(a);
+	write(b);
+	write(c);
+END.
