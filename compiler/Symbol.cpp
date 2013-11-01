@@ -74,6 +74,13 @@ StringConstant::StringConstant(char* value) {
 	constType = CONST_STRING;
 }
 
+StringConstant::StringConstant(std::string value) {
+	this->val = value;
+
+	name = "NO_NAME";
+	constType = CONST_STRING;
+}
+
 void StringConstant::print(std::ostream& out) {
 	out << "\tString Constant: " << std::endl
 			  << "\tName: " << name << std::endl

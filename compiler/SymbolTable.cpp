@@ -421,26 +421,27 @@ Expression* SymbolTable::lValueToExpression(LValue* lvalue) {
 }
 
 Expression* SymbolTable::integerConstToExpression(int value) {
-	// return new Expression(new IntegerConstant(value));
-	return loadImmediateInt(value);
+	return new Expression(new IntegerConstant(value));
 }
 
 Expression* SymbolTable::charConstToExpression(std::string value) {
-	return loadImmediateChar(value);
+	return new Expression(new CharacterConstant(value));
 }
 
 Expression* SymbolTable::stringConstToExpression(std::string value) {
-	std::string label = addStringConstant(value);
+	return new Expression(new StringConstant(value));
 
-	int location = getRegister();
+	// std::string label = addStringConstant(value);
 
-	std::ofstream& outFile = getInstance()->getFileStream();
+	// int location = getRegister();
 
-	outFile << "\tla\t$" << location << ", " << label << "\t # const str to reg." << std::endl;
+	// std::ofstream& outFile = getInstance()->getFileStream();
 
-	Expression* expression = new Expression(location);
-	expression->type = dynamic_cast<Type*>(lookup("string"));
-	return expression;
+	// outFile << "\tla\t$" << location << ", " << label << "\t # const str to reg." << std::endl;
+
+	// Expression* expression = new Expression(location);
+	// expression->type = dynamic_cast<Type*>(lookup("string"));
+	// return expression;
 }
 
 Expression* SymbolTable::identToExpression(std::string identifier) {

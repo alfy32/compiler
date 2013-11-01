@@ -37,6 +37,7 @@ public:
 
 	StringConstant() {}
 	StringConstant(char* value);
+	StringConstant(std::string value);
 	virtual void print(std::ostream&);
 };
 

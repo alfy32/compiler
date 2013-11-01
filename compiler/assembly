@@ -1,0 +1,31 @@
+# function call
+
+jal label  # $ra = pc + 4;
+
+
+# function 
+
+# prolog
+	# args $a0-4
+	# move $fp, $sp
+
+
+# body
+
+# epilog
+
+	$v0 # return register
+jr 	$ra
+
+
+
+$sp
+#locals
+$fp
+#args
+
+
+# locals
+	#locals
+	$fp
+	$ra
