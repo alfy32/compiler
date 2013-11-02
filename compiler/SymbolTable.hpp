@@ -16,7 +16,7 @@ public:
 	Constant* constant;
 
 	Expression(int location);
-	Expression(Constant*);
+	Expression(Constant*, Type* type);
 	int getLocation();
 };
 
@@ -134,7 +134,6 @@ public:
 	static Expression* integerConstToExpression(int value);
 	static Expression* charConstToExpression(std::string value);
 	static Expression* stringConstToExpression(std::string value);
-	static Expression* identToExpression(std::string identifier);
 	static Constant* lookupConstant(std::string identifier);
 	static Expression* expression(Expression* left, std::string op, Expression* right);
 	static Expression* expression(std::string, Expression* right);

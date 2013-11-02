@@ -21,8 +21,9 @@ Expression::Expression(int location) {
 	this->location = location;
 }
 
-Expression::Expression(Constant* constant) {
+Expression::Expression(Constant* constant, Type* type) {
 	this->constant = constant;
+	this->type = type;
 }
 
 int Expression::getLocation() {
@@ -140,7 +141,7 @@ Symbol* SymbolTable::lookup(std::string name) {
 	
 		Symbol* symbol = tableInstance->symbolTable[i].lookup(name);
 		
-		if(symbol != NULL) {
+		if(symbol) {
 			return symbol;
 		}
 	}
@@ -419,6 +420,10 @@ Constant* SymbolTable::evalStrConstant(Constant* left, std::string oper, Constan
 
 
 Expression* SymbolTable::lValueToExpression(LValue* lvalue) {
+	if(lvalue == NULL) {
+		yyerror("lValueToExpression got a null lvalue.");
+	}
+
 	Expression* expression = NULL;
 
 	if(lvalue->variable != NULL) {
@@ -431,6 +436,8 @@ Expression* SymbolTable::lValueToExpression(LValue* lvalue) {
 
 		return expression;
 	} else {
+		//TODO: get the right constant.
+
 		//ConstType constType = lvalue->constant->constType;
 
 		IntegerConstant* intConst = dynamic_cast<IntegerConstant*>(lvalue->constant);
@@ -466,35 +473,36 @@ Expression* SymbolTable::lValueToExpression(LValue* lvalue) {
 }
 
 Expression* SymbolTable::integerConstToExpression(int value) {
-	return new Expression(new IntegerConstant(value));
+	return loadImmediateInt(value);
+
+	//TODO: figure out constant folding
+	// Type* type = dynamic_cast<Type*>(lookup("integer"));
+	// return new Expression(new IntegerConstant(value), type);
 }
 
 Expression* SymbolTable::charConstToExpression(std::string value) {
-	return new Expression(new CharacterConstant(value));
+	return loadImmediateChar(value);
+
+	//TODO: figure out constant folding.
+	// Type* type = dynamic_cast<Type*>(lookup("char"));
+	// return new Expression(new CharacterConstant(value), type);
 }
 
 Expression* SymbolTable::stringConstToExpression(std::string value) {
-	return new Expression(new StringConstant(value));
+	// Type* type = dynamic_cast<Type*>(lookup("string"));
+	// return new Expression(new StringConstant(value), type);
 
-	// std::string label = addStringConstant(value);
+	std::string label = addStringConstant(value);
 
-	// int location = getRegister();
+	int location = getRegister();
 
-	// std::ofstream& outFile = getInstance()->getFileStream();
+	std::ofstream& outFile = getInstance()->getFileStream();
 
-	// outFile << "\tla\t$" << location << ", " << label << "\t # const str to reg." << std::endl;
+	outFile << "\tla\t$" << location << ", " << label << "\t # const str to reg." << std::endl;
 
-	// Expression* expression = new Expression(location);
-	// expression->type = dynamic_cast<Type*>(lookup("string"));
-	// return expression;
-}
-
-Expression* SymbolTable::identToExpression(std::string identifier) {
-	Symbol* symbol = lookup(identifier);
-
-	std::cout << "Figure out what to do here.................................................." << std::endl;
-
-	return new Expression(10);
+	Expression* expression = new Expression(location);
+	expression->type = dynamic_cast<Type*>(lookup("string"));
+	return expression;
 }
 
 Constant* SymbolTable::lookupConstant(std::string identifier) {
@@ -502,6 +510,10 @@ Constant* SymbolTable::lookupConstant(std::string identifier) {
 }
 
 Expression* SymbolTable::expression(Expression* left, std::string op, Expression* right){
+	if(left == NULL || right == NULL) {
+		yyerror("expression funciton got a null expression.");
+	}
+
 	if(left->type == right->type) {
 		if(op == "or") {
 			Expression* expression = eval(left, right, "or");
@@ -532,6 +544,10 @@ Expression* SymbolTable::expression(Expression* left, std::string op, Expression
 }
 
 Expression* SymbolTable::expression(std::string, Expression* right){
+	if(right == NULL) {
+		yyerror("expression string right got a null");
+	}
+
 	// std::cout << "Expression: op, symbol" << std::endl;
 	return right;
 }
@@ -634,6 +650,10 @@ std::deque<std::pair<std::deque<std::string>, Type*> >* SymbolTable::makeRecordI
 
 
 void SymbolTable::assignment(LValue* lvalue, Expression* expression) {
+	if(lvalue == NULL || expression == NULL) {
+		yyerror("assignment got a null");
+	}
+
 	int varLoc = lvalue->variable->location;
 	int expLoc = expression->location;
 
@@ -730,6 +750,10 @@ void SymbolTable::initAssembly() {
 //////////////////////////// Read and Write ////////////////////////////////
 
 void SymbolTable::write(std::deque<Expression*>* expressionList) {
+	if(expressionList == NULL) {
+		yyerror("write got a null deque");
+	}
+
 	for(Expression* expression: *expressionList) {
 		int location = lookup(expression);
 
@@ -776,6 +800,10 @@ void SymbolTable::writeString(int location) {
 }
 
 void SymbolTable::read(std::deque<LValue*>* lvalueList) {
+	if(lvalueList == NULL) {
+		yyerror("read got a null deque");
+	}
+
 	for(LValue* lvalue : *lvalueList) {
 		Variable* variable = lvalue->variable;
 
@@ -792,6 +820,10 @@ void SymbolTable::read(std::deque<LValue*>* lvalueList) {
 }
 
 void SymbolTable::readInteger(Variable* variable) {
+	if(variable == NULL) {
+		yyerror("readInteger got a null variable");
+	}
+
 	std::ofstream& outFile = getInstance()->getFileStream();
 
 	outFile << "\tli	$v0, 5" << "\t# read int." << std::endl
@@ -812,6 +844,10 @@ void SymbolTable::readString() {
 }
 
 void SymbolTable::readCharacter(Variable* variable) {
+	if(variable == NULL) {
+		yyerror("readCharacter got a null variable");
+	}
+
 	std::ofstream& outFile = getInstance()->getFileStream();
 
 	outFile << "\tli	$v0, 12" << "\t# read char." << std::endl
@@ -829,6 +865,10 @@ int SymbolTable::getRegister() {
 }
 
 int SymbolTable::lookup(Expression* expression) {
+	if(expression == NULL) {
+		yyerror("lookup got a null expression");
+	}
+
 	return expression->location;
 }
 
@@ -839,6 +879,10 @@ std::pair<int,int> SymbolTable::lookupExpression(std::string name) {
 }
 
 Expression* SymbolTable::eval(Expression* left, Expression* right, std::string operation) {
+	if(left == NULL || right == NULL) {
+		yyerror("eval got a null expression.");
+	}
+
 	int leftLocation = lookup(left);
 	int rightLocation = lookup(right);
 	int resultLocation = getRegister();
@@ -856,6 +900,10 @@ Expression* SymbolTable::eval(Expression* left, Expression* right, std::string o
 }
 
 Expression* SymbolTable::evalMult(Expression* left, Expression* right) {
+	if(left == NULL || right == NULL) {
+		yyerror("evalMult got a null expression.");
+	}
+
 	int leftLocation = lookup(left);
 	int rightLocation = lookup(right);
 	int resultLocation = getRegister();
@@ -871,6 +919,10 @@ Expression* SymbolTable::evalMult(Expression* left, Expression* right) {
 }
 
 Expression* SymbolTable::evalDiv(Expression* left, Expression* right) {
+	if(left == NULL || right == NULL) {
+		yyerror("evalDiv got a null expression.");
+	}
+
 	int leftLocation = lookup(left);
 	int rightLocation = lookup(right);
 	int resultLocation = getRegister();
@@ -886,6 +938,10 @@ Expression* SymbolTable::evalDiv(Expression* left, Expression* right) {
 }
 
 Expression* SymbolTable::evalMod(Expression* left, Expression* right) {
+	if(left == NULL || right == NULL) {
+		yyerror("evalMod got a null expression.");
+	}
+
 	int leftLocation = lookup(left);
 	int rightLocation = lookup(right);
 	int resultLocation = getRegister();
@@ -947,6 +1003,10 @@ Expression* SymbolTable::loadImmediateChar(std::string value) {
 }
 
 void SymbolTable::store(Variable* variable, Expression* expression) {
+	if(variable == NULL || expression == NULL) {
+		yyerror("store got a null.");
+	}
+
 	if(variable->type != expression->type) {
 		yyerror("Type mismatch on the store.");
 	}
@@ -1034,6 +1094,10 @@ void SymbolTable::elseStatement() {
 /////////////////////////////// For Statements /////////////////////////////
 
 void SymbolTable::initFor(std::string identifier, Expression* expression) {
+	if(expression == NULL) {
+		yyerror("initFor got a null expression.");
+	}
+
 	Variable* variable = dynamic_cast<Variable*>(lookup(identifier));
 
 	if(variable->type != expression->type) {
@@ -1057,6 +1121,10 @@ void SymbolTable::forLabel(std::string to) {
 }
 
 void SymbolTable::forEval(Expression* expression) {
+	if(expression == NULL) {
+		yyerror("forEval got a null expression.");
+	}
+
 	std::ofstream& outFile = getInstance()->getFileStream();
 
 	For forVar = getInstance()->forStack.back();
@@ -1113,6 +1181,10 @@ void SymbolTable::whileInit() {
 }
 
 void SymbolTable::whileBranch(Expression* expression) {
+	if(expression == NULL) {
+		yyerror("whileBranch got a null expression.");
+	}
+
 	std::ofstream& outFile = getInstance()->getFileStream();
 
 	While whileVar = getInstance()->whileStack.back();
@@ -1147,6 +1219,10 @@ void SymbolTable::repeatInit() {
 }
 
 void SymbolTable::repeatEnd(Expression* expression) {
+	if(expression == NULL) {
+		yyerror("repeatEnd got a null expression.");
+	}
+
 	std::ofstream& outFile = getInstance()->getFileStream();
 
 	Repeat repeat = getInstance()->repeatStack.back();

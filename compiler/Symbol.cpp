@@ -198,6 +198,7 @@ void Variable::print(std::ostream& out) {
 			  << "\tName: " << name << std::endl
 			  << "\tLocation: " << this->location << std::endl 
 			  << "\tSize: " << type->size << std::endl;
+	type->print(out);
 }
 
 //// End Variable ////

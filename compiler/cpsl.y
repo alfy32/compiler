@@ -376,8 +376,7 @@ Expression9:    IDENT_SYM L_PAREN_SYM ExpressionList R_PAREN_SYM
 
 
 LValue:         IDENT_SYM                       { $$ = SymbolTable::makeLValue($1); }
-                | IDENT_SYM SubLValueStar       { $$ = SymbolTable::makeLValue($1); }
-              /*  | IDENT_SYM DOT_SYM IDENT_SYM */
+                | IDENT_SYM SubLValueStar       { $$ = NULL; std::cout << "I don't know how to do arrays and records. I quit until that assignment comes.\n" << std::endl; exit(0); }
                 /*| LValue DOT_SYM LValue*/
                 /*| IDENT_SYM L_BRACKET_SYM Expression R_BRACKET_SYM*/
                 ;
