@@ -13,9 +13,20 @@ class Expression {
 public:
 	Type* type;
 	int location;
+	Constant* constant;
 
 	Expression(int location);
+	Expression(Constant*);
 	int getLocation();
+};
+
+class LValue {
+public:
+	Type* type;
+	Variable* variable;
+	Constant* constant;
+
+	LValue(std::string identifier);
 };
 
 class For {
@@ -118,8 +129,8 @@ public:
 	static Constant* evalIntConstant(Constant* left, std::string oper, Constant* right);
 	static Constant* evalCharConstant(Constant* left, std::string oper, Constant* right);
 	static Constant* evalStrConstant(Constant* left, std::string oper, Constant* right);
-	static Variable* makeLvalue(std::string identifier);
-	static Expression* lValueToExpression(Variable*);
+	
+	static Expression* lValueToExpression(LValue*);
 	static Expression* integerConstToExpression(int value);
 	static Expression* charConstToExpression(std::string value);
 	static Expression* stringConstToExpression(std::string value);
@@ -141,7 +152,14 @@ public:
 	static std::deque<std::pair<std::deque<std::string>, Type*> >* makeRecordItem(std::deque<std::string>* identList, Type* type, std::deque<std::pair<std::deque<std::string>, Type*> >* recordItem);
 
 
-	static void assignment(Variable*, Expression*);
+	static void assignment(LValue*, Expression*);
+
+	////////////////////////// Lvalue //////////////////////////////////////////
+
+	static LValue* makeLValue(std::string identifier);
+	static std::deque<LValue*>* makeLValueList(LValue*, std::deque<LValue*>*);
+
+	////////////////////////////////////////////////////////////////////////////
 
 	////////////////////////// Strings //////////////////////////////////////
 
@@ -169,7 +187,7 @@ public:
 	static void writeInteger(int location);
 	static void writeCharacter(int location);
 	static void writeString(int location);
-	static void read(std::deque<Variable*>*);
+	static void read(std::deque<LValue*>*);
 	static void readInteger(Variable* variable);
 	static void readString();
 	static void readCharacter(Variable* variable);

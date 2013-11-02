@@ -20,12 +20,14 @@ void Symbol::print(std::ostream& out) {
 //// Constant ////
 
 Constant::Constant() {
+	isConstant = true;
+	constType = CONST_UNKNOWN;
 	name = "NO_NAME";
-	constType = UNKNOWN_TYPE;
 }
 
 Constant::Constant(Constant* left, std::string op, Constant* right) {
-	
+	isConstant = true;
+
 	if(left->constType == right->constType) {
 		name = left->name;
 		constType = left->constType;
@@ -37,18 +39,22 @@ Constant::Constant(Constant* left, std::string op, Constant* right) {
 }
 
 Constant::Constant(std::string op, Constant* right) {
+	isConstant = true; 
+
 	if(right->constType == CONST_INT) {
 		name = right->name;
 		constType = right->constType;
 	} else {
 		name = "Operation";
-		constType = UNKNOWN_TYPE;
+		constType = CONST_UNKNOWN;
 	}
 }
 
 Constant::Constant(std::string identifier) {
+	isConstant = true;
+
 	name = identifier;
-	constType = UNKNOWN_TYPE;
+	constType = CONST_UNKNOWN;
 }
 
 void Constant::print(std::ostream& out) {
@@ -65,7 +71,14 @@ StringConstant::StringConstant(char* value) {
 	val = makeValue;
 
 	name = "NO_NAME";
-	constType = CONST_STR;
+	constType = CONST_STRING;
+}
+
+StringConstant::StringConstant(std::string value) {
+	this->val = value;
+
+	name = "NO_NAME";
+	constType = CONST_STRING;
 }
 
 void StringConstant::print(std::ostream& out) {
@@ -173,6 +186,8 @@ void SimpleType::print(std::ostream& out) {
 //// Variable ////
 
 Variable::Variable(std::string name, Type* type, int location) {
+	this->isConstant = false;
+
 	this->name = name;
 	this->type = type;
 	this->location = location;
@@ -267,7 +282,7 @@ void Array::print(std::ostream& out) {
 //// Func ////
 
 Func::Func(std::string identifier, std::deque<std::pair<std::deque<std::string>, Type*> >* formalParams, Type* returnType) {
-	// std::cout << "Function... Name: " << identifier << " ReturnType: " << returnType << " Params: ";
+	isConstant = false;
 
 	this->name = identifier;
 	this->returnType = returnType;
@@ -280,14 +295,12 @@ Func::Func(std::string identifier, std::deque<std::pair<std::deque<std::string>,
 			std::deque<std::string> identifiers = formalParam.first;
 
 			for(int j = 0; j < identifiers.size(); j++) {
-				// std::cout << " Ident: " << identifiers[j] << " Type: " << type;
 				std::pair<std::string, Type*> thePair = std::make_pair(identifiers[j], type);
 
 				signature.push_back(thePair);
 			}
 		}
 	}
-	// std::cout << std::endl;
 }
 
 void Func::print(std::ostream& out) {
@@ -310,7 +323,7 @@ void Func::print(std::ostream& out) {
 //// Proc ////
 
 Proc::Proc(std::string identifier, std::deque<std::pair<std::deque<std::string>, Type*> >* formalParams) {
-	// std::cout << "Procedure... Name: " << identifier << " Params: ";
+	isConstant = false;
 
 	this->name = identifier;
 
@@ -322,14 +335,12 @@ Proc::Proc(std::string identifier, std::deque<std::pair<std::deque<std::string>,
 			std::deque<std::string> identifiers = formalParam.first;
 
 			for(int j = 0; j < identifiers.size(); j++) {
-				// std::cout << " Ident: " << identifiers[j] << " Type: " << type;
 				std::pair<std::string, Type*> thePair = std::make_pair(identifiers[j], type);
 
 				signature.push_back(thePair);
 			}
 		}
 	}
-	// std::cout << std::endl;
 }	
 
 void Proc::print(std::ostream& out) {

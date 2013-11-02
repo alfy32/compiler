@@ -11,13 +11,14 @@
 class Symbol {
 public:
 	std::string name;
+	bool isConstant;
 
 	Symbol();
 	Symbol(std::string identifier);
 	virtual void print(std::ostream&);
 };
 
-enum ConstType { CONST_INT, CONST_STR, CONST_CHAR, UNKNOWN_TYPE }; 
+enum ConstType {CONST_CHAR, CONST_STRING, CONST_INT, CONST_UNKNOWN};
 
 class Constant : public Symbol {
 public:
@@ -34,7 +35,9 @@ class StringConstant : public Constant {
 public:
 	std::string val;
 
+	StringConstant() {}
 	StringConstant(char* value);
+	StringConstant(std::string value);
 	virtual void print(std::ostream&);
 };
 
@@ -42,6 +45,7 @@ class CharacterConstant : public Constant {
 public:
 	std::string val;
 
+	CharacterConstant() {}
 	CharacterConstant(char* value);
 	CharacterConstant(std::string value);
 	virtual void print(std::ostream&);
@@ -51,6 +55,7 @@ class IntegerConstant : public Constant {
 public:
 	int val;
 
+	IntegerConstant() {}
 	IntegerConstant(int value);
 	virtual void print(std::ostream&);
 };
@@ -59,6 +64,7 @@ class Boolean : public Constant {
 public:
 	bool val;
 
+	Boolean() {}
 	Boolean(bool value);
 	virtual void print(std::ostream&);
 };
@@ -130,6 +136,5 @@ public:
 	Proc(std::string identifier, std::deque<std::pair<std::deque<std::string>, Type*> >* formalParams);
 	virtual void print(std::ostream&);
 };
-
 
 #endif
