@@ -86,6 +86,7 @@ private:
 	std::ofstream outputFile;
 	std::ofstream verboseFile;
 public:
+	std::string asmFileName = "cpsl.asm";
 	void openFile();
 	std::ofstream& getFileStream();
 	std::ostream& getErrorStream();
@@ -112,7 +113,6 @@ public:
 	static void addNewScope(Func* func);
 	static void procDecl(std::string identifier, Proc* proc);
 	static void addNewScope(Proc* proc);
-	static void forStatement(std::string identifier, Expression* initalValue, Expression* expr, std::string UpToOrDownTo);
 	static Constant* evalConstant(Constant* left, std::string oper, Constant* right);
 	static Constant* evalConstant(std::string oper, Constant* right);
 	static Constant* evalIntConstant(Constant* left, std::string oper, Constant* right);

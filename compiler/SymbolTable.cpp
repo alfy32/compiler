@@ -33,6 +33,9 @@ Table::Table() {
 }
 
 void Table::add(std::string identifier, Symbol* symbol) {
+	if(symbol == NULL)
+		return;
+
 	if(tableMap.find(identifier) != tableMap.end()) {
 		SymbolTable::getInstance()->getErrorStream() << "We alread have the symbol (" << identifier << ") in the table. I quit!!!!" << std::endl;
 		yyerror("Symbol already defined.");
@@ -52,12 +55,13 @@ Symbol* Table::lookup(std::string name) {
 void Table::print() {
 	SymbolTable::getInstance()->getVerboseStream() << "Here is the table: \n";
 
-	std::map<std::string, Symbol*>::iterator iter;
-
-	for(iter = tableMap.begin(); iter != tableMap.end(); iter++) {
+	for(std::pair<std::string, Symbol*> pair : tableMap) {
 		std::ostream& out = SymbolTable::getInstance()->getVerboseStream();
-		out << " Name: " << iter->first << " Symbol: " << iter->second << std::endl;
-		iter->second->print(out);
+
+		out << " Name: " << pair.first << " Symbol: " << pair.second << std::endl;
+		
+		if(pair.second != NULL)
+			pair.second->print(out);
 	}
 }
 
@@ -82,7 +86,7 @@ SymbolTable* SymbolTable::getInstance() {
 }
 
 void SymbolTable::openFile() {
-	outputFile.open("cpsl.asm");
+	outputFile.open(asmFileName);
 	if(!verbose)
 		verboseFile.open("cpsl_verbose.output");
 }
@@ -104,6 +108,9 @@ std::ostream& SymbolTable::getVerboseStream() {
 }
 
 void SymbolTable::add(std::string identifier, Symbol* symbol) {
+	if(symbol == NULL)
+		return;
+
 	SymbolTable* tableInstance = getInstance();
 
 	tableInstance->symbolTable.back().add(identifier, symbol);
@@ -116,7 +123,7 @@ Symbol* SymbolTable::lookup(std::string name) {
 	
 		Symbol* symbol = tableInstance->symbolTable[i].lookup(name);
 		
-		if(symbol) {
+		if(symbol != NULL) {
 			return symbol;
 		}
 	}
@@ -166,6 +173,11 @@ Table SymbolTable::initializedMainTable() {
 }
 
 void SymbolTable::addVar(std::deque<std::string>* identList, Type* type) {
+	if(identList == NULL || type == NULL) {
+		yyerror("Add var function found a null.");
+		return;
+	}
+
 	for(std::string identifier : *identList) {
 		Variable* var = new Variable(identifier, type, currentOffset);
 		add(identifier, var);
@@ -174,22 +186,38 @@ void SymbolTable::addVar(std::deque<std::string>* identList, Type* type) {
 }
 
 void SymbolTable::constDecl(std::string identifier, Constant* constExpression) {
+	if(constExpression == NULL) {
+		yyerror("constDecl Function got a null.");
+	}
+
 	constExpression->name = identifier;
 	add(identifier, constExpression);
 }
 
 void SymbolTable::typeDecl(std::string identifier, Type* type) {
+	if(type == NULL) {
+		yyerror("typeDecl function got an null type");
+	}
+
 	type->name = identifier;
 	add(identifier, type);
 }
 
 void SymbolTable::funcDecl(std::string identifier, Func* func) {
+	if(func == NULL) {
+		yyerror("funcDecl function got a null");
+	}
+
 	add(identifier, func);
 
 	addNewScope(func);
 }
 
 void SymbolTable::addNewScope(Func* func) {
+	if(func == NULL) {
+		yyerror("addNewScope got a null func");
+	}
+
 	SymbolTable* tableInstance = getInstance();
 
 	Table table;
@@ -203,12 +231,20 @@ void SymbolTable::addNewScope(Func* func) {
 }
 
 void SymbolTable::procDecl(std::string identifier, Proc* proc) {
+	if(proc == NULL) {
+		yyerror("procDecl got a null proc");
+	}
+
 	add(identifier, proc);
 
 	addNewScope(proc);
 }
 
 void SymbolTable::addNewScope(Proc* proc) {
+	if(proc == NULL) {
+		yyerror("addNewScope got a null proc");
+	}
+
 	SymbolTable* tableInstance = getInstance();
 
 	Table table;		
@@ -218,19 +254,12 @@ void SymbolTable::addNewScope(Proc* proc) {
 		add(pair.first, pair.second);
 	}
 }
-//FOR_SYM IDENT_SYM ASSIGNMENT_SYM Expression TO_SYM Expression DO_SYM
-void SymbolTable::forStatement(std::string identifier, Expression* initalValue, Expression* expr, std::string UpToOrDownTo) {
-	// SymbolTable* tableInstance = getInstance();
-
-	// Table table;
-	// tableInstance->symbolTable.push_back(table);
-
-	// std::cout << "Added new for scope...\n";
-
-	// add(identifier, initalValue);
-}
 
 Constant* SymbolTable::evalConstant(Constant* left, std::string oper, Constant* right) {
+	if(left == NULL || right == NULL) {
+		yyerror("evalConstant got a null Constant pointer.");
+	}
+
 	if(left->constType == right->constType) {
 		switch(left->constType)
 		{
@@ -253,6 +282,10 @@ Constant* SymbolTable::evalConstant(Constant* left, std::string oper, Constant* 
 }
 
 Constant* SymbolTable::evalConstant(std::string oper, Constant* right) {
+	if(right == NULL) {
+		yyerror("evalConstant got a null right.");
+	}
+
 	if(right->constType == CONST_INT) {
 		IntegerConstant* value = dynamic_cast<IntegerConstant*>(right);
 
@@ -267,6 +300,10 @@ Constant* SymbolTable::evalConstant(std::string oper, Constant* right) {
 }
 
 Constant* SymbolTable::evalIntConstant(Constant* left, std::string oper, Constant* right) {
+	if(left == NULL || right == NULL) {
+		yyerror("evalIntConstant got a null Constant pointer.");
+	}
+
 	int leftValue = dynamic_cast<IntegerConstant*>(left)->val;
 	int rightValue = dynamic_cast<IntegerConstant*>(right)->val;
 
@@ -305,6 +342,10 @@ Constant* SymbolTable::evalIntConstant(Constant* left, std::string oper, Constan
 }
 
 Constant* SymbolTable::evalCharConstant(Constant* left, std::string oper, Constant* right) {
+	if(left == NULL || right == NULL) {
+		yyerror("evalCharConstant got a null Constant pointer.");
+	}
+
 	std::string leftValue = dynamic_cast<CharacterConstant*>(left)->val;
 	std::string rightValue = dynamic_cast<CharacterConstant*>(right)->val;
 
@@ -330,6 +371,10 @@ Constant* SymbolTable::evalCharConstant(Constant* left, std::string oper, Consta
 }
 
 Constant* SymbolTable::evalStrConstant(Constant* left, std::string oper, Constant* right) {
+	if(left == NULL || right == NULL) {
+		yyerror("evalStrConstant got a null Constant pointer.");
+	}
+	
 	std::string leftValue = dynamic_cast<StringConstant*>(left)->val;
 	std::string rightValue = dynamic_cast<StringConstant*>(right)->val;
 
