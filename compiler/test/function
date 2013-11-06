@@ -1,0 +1,21 @@
+const
+  TABLEN = 20;
+  NAMELEN = 24;
+
+
+function print (var a,b:integer) : boolean;
+begin
+  write("A: ", a, " B: ", b);
+  return false;
+end;
+
+function add (a,b: integer) : boolean;
+begin
+  return a + b;
+end;
+
+
+begin
+  print(20, 30);
+  write(add(12,3));
+end.

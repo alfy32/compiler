@@ -8,7 +8,7 @@ extern YYSTYPE yylval;
 
 int lineNumber = 1;
 
-bool verboseLex = false;
+bool verboseLex = true;
 
 
 void keyword(std::string word);
@@ -206,8 +206,9 @@ void comment() {
 
 void endOfLine() {
 	if(verboseLex) {
-		std::cout << "End of line: " << lineNumber++ << std::endl;
+		std::cout << "End of line: " << lineNumber << std::endl;
 	}
+	lineNumber++;
 }
 
 void endOfFile() {

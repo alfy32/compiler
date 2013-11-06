@@ -3,7 +3,9 @@
 
 #include "cpsl.h"
 
-extern int lineNumber;    
+extern int lineNumber; 
+
+#define YYERROR_VERBOSE 1   
 
 %}
 

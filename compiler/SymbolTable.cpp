@@ -553,13 +553,64 @@ Expression* SymbolTable::expression(std::string, Expression* right){
 }
 
 Expression* SymbolTable::function_call(std::string identifier) {
-	// std::cout << "Function Call: no params." << std::endl;
-	return new Expression(0);
+	Symbol* symbol = lookup(identifier);
+	if(symbol == NULL) {
+		yyerror("the function is not in the symbol table.");
+	}
+
+	Func* function = dynamic_cast<Func*>(symbol);
+
+	Expression* expression = new Expression(getRegister());
+	expression->type = function->returnType;
+
+	std::ostream& outFile = getInstance()->getFileStream();
+
+	outFile << "jal\t" << identifier << "\t# function call" << std::endl
+			<< "\tmove $" << expression->location << ", $v0" << "\t# move return value to new register." << std::endl;
+	
+	return expression;
 }
 
-Expression* SymbolTable::function_call(std::string identifier, std::deque<Expression*>*) {
-	// std::cout << "Function Call: has params." << std::endl;
-	return new Expression(0);
+Expression* SymbolTable::function_call(std::string identifier, std::deque<Expression*>* expressionList) {
+	if(expressionList == NULL) {
+		yyerror("the expression list for the function is null. I quit.");
+	}
+
+	Symbol* symbol = lookup(identifier);
+	if(symbol == NULL) {
+		yyerror("this function is not in the symbol table.");
+	}
+
+	Func* function = dynamic_cast<Func*>(symbol);
+
+	if(expressionList->size() != function->signature.size()) {
+		yyerror("The argument list is a different size than the parameter list.");
+	}
+
+	Expression* expression = new Expression(getRegister());
+	expression->type = function->returnType;
+
+	std::ostream& outFile = getInstance()->getFileStream();
+
+	for(int i = 0; i < function->signature.size(); i++) {
+		std::pair<std::string, Type*> parameter = function->signature[i];
+		Expression* argument = (*expressionList)[i];
+
+		if(argument == NULL) {
+			yyerror("Argument is a null pointer. Talk to your compiler writer.");
+		}
+
+		if(parameter.second != argument->type) {
+			yyerror("Argument of the function is the wrong type.");
+		}
+
+		outFile << "\tmove $a" << i << ", $" << argument->location << "\t# moving value to argument register." << std::endl;
+	}
+
+	outFile << "jal\t" << identifier << "\t# function call" << std::endl
+			<< "\tmove $" << expression->location << ", $v0" << "\t# move return value to new register." << std::endl;
+	
+	return expression;
 }
 
 Expression* SymbolTable::chr(Expression* symbol) {
