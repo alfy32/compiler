@@ -193,7 +193,6 @@ Table SymbolTable::initializedMainTable() {
 void SymbolTable::addVar(std::deque<std::string>* identList, Type* type) {
 	if(identList == NULL || type == NULL) {
 		yyerror("Add var function found a null.");
-		return;
 	}
 
 	for(std::string identifier : *identList) {
@@ -201,6 +200,18 @@ void SymbolTable::addVar(std::deque<std::string>* identList, Type* type) {
 		add(identifier, var);
 		currentOffset += type->size;
 	}
+}
+
+Variable* SymbolTable::addVar(std::string identifier, Type* type) {
+	if(type == NULL) {
+		yyerror("Add var function found a null.");
+	}
+
+	Variable* var = new Variable(identifier, type, currentOffset);
+	add(identifier, var);
+	currentOffset += type->size;
+
+	return var;
 }
 
 void SymbolTable::constDecl(std::string identifier, Constant* constExpression) {
@@ -228,24 +239,41 @@ void SymbolTable::funcDecl(std::string identifier, Func* func) {
 
 	add(identifier, func);
 
-	addNewScope(func);
-}
+	std::ostream& outFile = getInstance()->getFileStream();
 
-void SymbolTable::addNewScope(Func* func) {
-	if(func == NULL) {
-		yyerror("addNewScope got a null func");
-	}
+	outFile << identifier << ":\t# ******** " << identifier << " function ********" << std::endl
+			<< "\tsw\t$ra " << currentOffset << "($sp)" << std::endl
+			<< "\tsw\t$sp " << currentOffset+4 << "($sp)" << std::endl
+			<< "\taddi\t$sp, $sp, " << currentOffset+8 << std::endl;
 
-	SymbolTable* tableInstance = getInstance();
+	addNewScope();
 
-	Table table;
-	tableInstance->symbolTable.push_back(table);
-
-	currentOffset = 0;
+	int aReg = 0;
 
 	for(std::pair<std::string, Type*> pair : func->signature) {
-		add(pair.first, pair.second);
+		Variable* var = addVar(pair.first, pair.second);
+
+		std::string reg = "a" + std::to_string(aReg++);
+
+		store(var, reg);
 	}
+}
+
+void SymbolTable::funcEnd(Func* function, bool isForward) {
+	if(function == NULL) {
+		yyerror("This function is supposed to end but it is null.");
+	}
+
+	function->isForward = isForward;
+
+	std::ostream& outFile = getInstance()->getFileStream();
+
+	outFile << "\taddi\t$sp, $sp, -8" << std::endl
+			<< "\tlw\t$ra 0($sp)" << std::endl
+			<< "\tlw\t$sp 4($sp)" << std::endl
+			<< "\tjr $ra \t# ******** end " << function->name << " function ********" << std::endl;
+
+	pop();
 }
 
 void SymbolTable::procDecl(std::string identifier, Proc* proc) {
@@ -255,22 +283,20 @@ void SymbolTable::procDecl(std::string identifier, Proc* proc) {
 
 	add(identifier, proc);
 
-	addNewScope(proc);
-}
+	addNewScope();
 
-void SymbolTable::addNewScope(Proc* proc) {
-	if(proc == NULL) {
-		yyerror("addNewScope got a null proc");
-	}
-
-	SymbolTable* tableInstance = getInstance();
-
-	Table table;		
-	tableInstance->symbolTable.push_back(table);
-	
 	for(std::pair<std::string, Type*> pair : proc->signature) {
 		add(pair.first, pair.second);
 	}
+}
+
+void SymbolTable::addNewScope() {
+	SymbolTable* tableInstance = getInstance();
+
+	Table table;
+	tableInstance->symbolTable.push_back(table);
+
+	currentOffset = 0;
 }
 
 Constant* SymbolTable::evalConstant(Constant* left, std::string oper, Constant* right) {
@@ -565,7 +591,7 @@ Expression* SymbolTable::function_call(std::string identifier) {
 
 	std::ostream& outFile = getInstance()->getFileStream();
 
-	outFile << "jal\t" << identifier << "\t# function call" << std::endl
+	outFile << "\tjal\t" << identifier << "\t# function call" << std::endl
 			<< "\tmove $" << expression->location << ", $v0" << "\t# move return value to new register." << std::endl;
 	
 	return expression;
@@ -776,9 +802,8 @@ void SymbolTable::initAssembly() {
 
 	outFile << "\t.text" << std::endl
 			<< "\t.globl main" << std::endl
-			<< "main: " //la $gp, GA" << std::endl
-			// << "\tb _begin" << std::endl
-			<< std::endl;
+			<< "main: " << std::endl
+			<< "\tb begin" << "\t#jump to main." << std::endl;
 
 	/*
 		.text
@@ -794,6 +819,12 @@ void SymbolTable::initAssembly() {
 	string area
 	.asciiz " "
 	*/
+}
+
+void SymbolTable::startMain() {
+	std::ofstream& outFile = getInstance()->getFileStream();
+
+	outFile << "begin: " << std::endl;
 }
 
 ////////////////////////////////////////////////////////////////////////////
@@ -1065,6 +1096,16 @@ void SymbolTable::store(Variable* variable, Expression* expression) {
 	std::ofstream& outFile = getInstance()->getFileStream();
 
 	outFile << "\tsw	$" << expression->location << ", " << variable->location << "($sp)" << std::endl;
+}
+
+void SymbolTable::store(Variable* variable, std::string reg) {
+	if(variable == NULL) {
+		yyerror("store got a null.");
+	}
+
+	std::ofstream& outFile = getInstance()->getFileStream();
+
+	outFile << "\tsw	$" << reg << ", " << variable->location << "($sp)" << std::endl;
 }
 
 ////////////////////////////////////////////////////////////////////////////

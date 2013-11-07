@@ -90,10 +90,13 @@ extern int lineNumber;
 
 %%
 
-Program:        Init SubCDecl SubTDecl SubVDecl SubPFDecl Block DOT_SYM { SymbolTable::pop(); SymbolTable::pop(); SymbolTable::printStringConstants(); }
+Program:        Init SubCDecl SubTDecl SubVDecl SubPFDecl InitMain Block DOT_SYM { SymbolTable::pop(); SymbolTable::pop(); SymbolTable::printStringConstants(); }
                 ;
 
 Init:           { SymbolTable::initAssembly(); }
+                ;
+
+InitMain:       { SymbolTable::startMain(); }
                 ;
 
 SubCDecl:       ConstantDecl
@@ -130,8 +133,8 @@ ProcedureDecl:  ProcedureSig FORWARD_SYM SEMICOLON_SYM  { SymbolTable::pop(); }
 ProcedureSig:   PROCEDURE_SYM IDENT_SYM L_PAREN_SYM FormalParameters R_PAREN_SYM SEMICOLON_SYM  { $$ = new Proc($2, $4); SymbolTable::procDecl($2, $$); }
                 ;
 
-FunctionDecl:   FunctionSig FORWARD_SYM SEMICOLON_SYM   { SymbolTable::pop(); }
-                | FunctionSig Body SEMICOLON_SYM        { SymbolTable::pop(); }
+FunctionDecl:   FunctionSig FORWARD_SYM SEMICOLON_SYM   { SymbolTable::funcEnd($1, true); }
+                | FunctionSig Body SEMICOLON_SYM        { SymbolTable::funcEnd($1, false); }
                 ;
 
 FunctionSig:    FUNCTION_SYM IDENT_SYM L_PAREN_SYM FormalParameters R_PAREN_SYM COLON_SYM Type SEMICOLON_SYM { $$ = new Func($2, $4, $7); SymbolTable::funcDecl($2, $$); }

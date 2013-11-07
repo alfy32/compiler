@@ -55,6 +55,10 @@ test: all
 	./cpsl test/test_factorial
 	java -jar mars.jar cpsl.asm
 
+functions: all
+	./cpsl test/function
+	java -jar mars.jar cpsl.asm
+
 expressions: all
 	./cpsl test/test_expressions
 	java -jar mars.jar cpsl.asm

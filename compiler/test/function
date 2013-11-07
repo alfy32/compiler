@@ -3,13 +3,13 @@ const
   NAMELEN = 24;
 
 
-function print (var a,b:integer) : boolean;
+function print (var a,b:integer) : integer;
 begin
   write("A: ", a, " B: ", b);
-  return false;
+  return 2;
 end;
 
-function add (a,b: integer) : boolean;
+function add (a,b: integer) : integer;
 begin
   return a + b;
 end;

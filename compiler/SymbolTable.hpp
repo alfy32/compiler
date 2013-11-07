@@ -118,12 +118,13 @@ public:
 	static void pop();
 	static Table initializedMainTable();
 	static void addVar(std::deque<std::string>* identList, Type* type);
+	static Variable* addVar(std::string identifier, Type* type);
 	static void constDecl(std::string identifier, Constant* constExpression);
 	static void typeDecl(std::string identifier, Type* type);
 	static void funcDecl(std::string identifier, Func* func);
-	static void addNewScope(Func* func);
+	static void funcEnd(Func*, bool);
 	static void procDecl(std::string identifier, Proc* proc);
-	static void addNewScope(Proc* proc);
+	static void addNewScope();
 	static Constant* evalConstant(Constant* left, std::string oper, Constant* right);
 	static Constant* evalConstant(std::string oper, Constant* right);
 	static Constant* evalIntConstant(Constant* left, std::string oper, Constant* right);
@@ -177,6 +178,7 @@ public:
 	///////////////////////// Initialize Assembly //////////////////////////////
 
 	static void initAssembly();
+	static void startMain();
 
 	////////////////////////////////////////////////////////////////////////////
 
@@ -209,6 +211,7 @@ public:
 	static Expression* loadImmediateInt(int value);
 	static Expression* loadImmediateChar(std::string value);
 	static void store(Variable*, Expression*);
+	static void store(Variable*, std::string reg);
 
 	////////////////////////////////////////////////////////////////////////////
 
