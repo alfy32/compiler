@@ -20,5 +20,5 @@ end;
 
 begin
   a := print(20,13);
-  write("\na: ", a, '\n', add(12,3));
+  write("\na: ", a,'\n', add(12,3));
 end.

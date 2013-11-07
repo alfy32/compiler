@@ -90,7 +90,7 @@ extern int lineNumber;
 
 %%
 
-Program:        Init SubCDecl SubTDecl SubVDecl SubPFDecl InitMain Block DOT_SYM { SymbolTable::pop(); SymbolTable::pop(); SymbolTable::printStringConstants(); }
+Program:        Init SubCDecl SubTDecl SubVDecl SubPFDecl InitMain Block DOT_SYM { SymbolTable::endMain(); }
                 ;
 
 Init:           { SymbolTable::initAssembly(); }
@@ -200,17 +200,17 @@ StatementSequence: Statement
                 | Statement SEMICOLON_SYM StatementSequence     
                 ;
 
-Statement:      Assignemnt          
+Statement:      Assignemnt          { SymbolTable::endStatement(); }
                 | IfStatement       { SymbolTable::endStatement(); }
                 | WhileStatement    { SymbolTable::endStatement(); }
                 | RepeatStatement   { SymbolTable::endStatement(); }
                 | ForStatement      { SymbolTable::endStatement(); }
                 | StopStatement     { SymbolTable::endStatement(); }
-                | ReturnStatement   
+                | ReturnStatement   { SymbolTable::endStatement(); }
                 | ReadStatement     { SymbolTable::endStatement(); }
                 | WriteStatement    { SymbolTable::endStatement(); }
                 | ProcedureCall     
-                | NullStatement     
+                | NullStatement     { SymbolTable::endStatement(); }
                 ;
 
 Assignemnt:     LValue ASSIGNMENT_SYM Expression    { SymbolTable::assignment($1, $3); }
@@ -274,7 +274,7 @@ StopStatement:  STOP_SYM    { SymbolTable::stop(); }
                 ;
 
 ReturnStatement: RETURN_SYM  
-                | RETURN_SYM Expression
+                | RETURN_SYM Expression     { SymbolTable::returnStatement($2); }
                 ;
 
 ReadStatement:  READ_SYM L_PAREN_SYM LValueList R_PAREN_SYM    { SymbolTable::read($3); }

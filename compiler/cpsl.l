@@ -8,7 +8,7 @@ extern YYSTYPE yylval;
 
 int lineNumber = 1;
 
-bool verboseLex = true;
+bool verboseLex = false;
 
 
 void keyword(std::string word);

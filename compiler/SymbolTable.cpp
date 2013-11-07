@@ -241,12 +241,18 @@ void SymbolTable::funcDecl(std::string identifier, Func* func) {
 
 	std::ostream& outFile = getInstance()->getFileStream();
 
-	outFile << identifier << ":\t# ******** " << identifier << " function ********" << std::endl
-			<< "\tsw\t$ra " << currentOffset << "($sp)" << std::endl
-			<< "\tsw\t$sp " << currentOffset+4 << "($sp)" << std::endl
-			<< "\taddi\t$sp, $sp, " << currentOffset+8 << std::endl;
-
+	outFile << identifier << ":\t# ******** " << identifier << " function ********" << std::endl;
+			
 	addNewScope();
+
+	int stackSize = 0;
+
+	for(std::pair<std::string, Type*> pair : func->signature) {
+		stackSize += pair.second->size; 
+	}
+
+	outFile << "\tsw\t$sp, -4($sp)" << std::endl
+			<< "\taddi\t$sp, $sp, -" << stackSize+8 << std::endl;
 
 	int aReg = 0;
 
@@ -257,6 +263,8 @@ void SymbolTable::funcDecl(std::string identifier, Func* func) {
 
 		store(var, reg);
 	}
+
+	outFile << "\tsw\t$ra, " << currentOffset << "($sp)" << std::endl;
 }
 
 void SymbolTable::funcEnd(Func* function, bool isForward) {
@@ -268,12 +276,22 @@ void SymbolTable::funcEnd(Func* function, bool isForward) {
 
 	std::ostream& outFile = getInstance()->getFileStream();
 
-	outFile << "\taddi\t$sp, $sp, -8" << std::endl
-			<< "\tlw\t$ra 0($sp)" << std::endl
-			<< "\tlw\t$sp 4($sp)" << std::endl
+	outFile << "\tlw\t$ra " << currentOffset << "($sp)" << std::endl
+			<< "\tlw\t$sp " << currentOffset+4 << "($sp)" << std::endl
+			<< "\taddi\t$sp, $sp, " << currentOffset+8 << std::endl
 			<< "\tjr $ra \t# ******** end " << function->name << " function ********" << std::endl;
 
 	pop();
+}
+
+void SymbolTable::returnStatement(Expression* expression) {
+	if(expression == NULL) {
+		error("The return expression is null.");
+	}
+
+	std::ostream& outFile = getInstance()->getFileStream();
+
+	outFile << "\tmove\t$v0, $" << expression->location << "\t# return statement." << std::endl; 
 }
 
 void SymbolTable::procDecl(std::string identifier, Proc* proc) {
@@ -591,8 +609,6 @@ Expression* SymbolTable::function_call(std::string identifier) {
 	Expression* expression = new Expression(getRegister());
 	expression->type = function->returnType;
 
-	
-
 	outFile << "\tjal\t" << identifier << "\t# function call" << std::endl
 			<< "\tmove $" << expression->location << ", $v0" << "\t# move return value to new register." << std::endl;
 	
@@ -620,7 +636,16 @@ Expression* SymbolTable::function_call(std::string identifier, std::deque<Expres
 	Expression* expression = new Expression(getRegister());
 	expression->type = function->returnType;
 
-	
+	int regsToSave = 0;
+
+	if(currentRegister > 8) {
+		while(currentRegister > 8) {
+			regsToSave++;
+			currentRegister--;
+			outFile << "\tsw $" << currentRegister << ", -" << regsToSave*4 << "($sp)" << std::endl;
+		}
+		outFile << "addi $sp, $sp, -" << regsToSave*4+4 << std::endl;
+	}
 
 	for(int i = 0; i < function->signature.size(); i++) {
 		std::pair<std::string, Type*> parameter = function->signature[i];
@@ -637,8 +662,19 @@ Expression* SymbolTable::function_call(std::string identifier, std::deque<Expres
 		outFile << "\tmove $a" << i << ", $" << argument->location << "\t# moving value to argument register." << std::endl;
 	}
 
-	outFile << "\tjal\t" << identifier << "\t# function call" << std::endl
-			<< "\tmove $" << expression->location << ", $v0" << "\t# move return value to new register." << std::endl;
+	outFile << "\tjal\t" << identifier << "\t# function call" << std::endl;
+
+	if(regsToSave) {
+		outFile << "addi $sp, $sp, " << regsToSave*4+4 << std::endl;
+	}
+
+	while(regsToSave) {
+		outFile << "\tlw $" << currentRegister << ", -" << regsToSave*4 << "($sp)" << std::endl;
+		regsToSave--;
+		currentRegister++;
+	}
+
+	outFile	<< "\tmove $" << expression->location << ", $v0" << "\t# move return value to new register." << std::endl;
 	
 	return expression;
 }
@@ -832,7 +868,22 @@ void SymbolTable::initAssembly() {
 void SymbolTable::startMain() {
 	std::ofstream& outFile = getInstance()->getFileStream();
 
-	outFile << "begin: " << std::endl;
+	outFile << "begin: " << std::endl
+			<< "\tsw\t$sp, -4($sp)" << "\t# prolog." << std::endl
+			<< "\taddi\t$sp, $sp, -" << currentOffset+8 << std::endl
+			<< "\tsw\t$ra, " << currentOffset << "($sp)" << "\t# end prolog." << std::endl;
+}
+
+void SymbolTable::endMain() {
+	std::ofstream& outFile = getInstance()->getFileStream();
+
+	outFile << "\tlw\t$ra, " << currentOffset << "($sp)" << "\t# Epilog." << std::endl
+			<< "\tlw\t$sp, " << currentOffset+4 << "($sp)" << std::endl
+			<< "\taddi\t$sp, $sp, " << currentOffset+8 << "\t# End Epilog." << std::endl;
+
+	pop(); 
+	pop(); 
+	printStringConstants();
 }
 
 ////////////////////////////////////////////////////////////////////////////
