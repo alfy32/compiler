@@ -57,7 +57,7 @@ void Table::add(std::string identifier, Symbol* symbol) {
 
 	if(tableMap.find(identifier) != tableMap.end()) {
 		SymbolTable::getInstance()->getErrorStream() << "We alread have the symbol (" << identifier << ") in the table. I quit!!!!" << std::endl;
-		yyerror("Symbol already defined.");
+		SymbolTable::error("Symbol already defined.");
 	}
 
 	this->tableMap[identifier] = symbol;
@@ -147,8 +147,7 @@ Symbol* SymbolTable::lookup(std::string name) {
 		}
 	}
 	
-	getInstance()->getErrorStream() << "The symbol(" << name << ") is not in the table so I will die." << std::endl;
-	yyerror("Symbol not found in symbol table.");
+	error("The symbol(" + name + ") is not in the table so I will die.");
 	
 	return NULL;
 }
@@ -193,7 +192,7 @@ Table SymbolTable::initializedMainTable() {
 
 void SymbolTable::addVar(std::deque<std::string>* identList, Type* type) {
 	if(identList == NULL || type == NULL) {
-		yyerror("Add var function found a null.");
+		error("Add var function found a null.");
 	}
 
 	for(std::string identifier : *identList) {
@@ -205,7 +204,7 @@ void SymbolTable::addVar(std::deque<std::string>* identList, Type* type) {
 
 Variable* SymbolTable::addVar(std::string identifier, Type* type) {
 	if(type == NULL) {
-		yyerror("Add var function found a null.");
+		error("Add var function found a null.");
 	}
 
 	Variable* var = new Variable(identifier, type, currentOffset);
@@ -217,7 +216,7 @@ Variable* SymbolTable::addVar(std::string identifier, Type* type) {
 
 void SymbolTable::constDecl(std::string identifier, Constant* constExpression) {
 	if(constExpression == NULL) {
-		yyerror("constDecl Function got a null.");
+		error("constDecl Function got a null.");
 	}
 
 	constExpression->name = identifier;
@@ -226,7 +225,7 @@ void SymbolTable::constDecl(std::string identifier, Constant* constExpression) {
 
 void SymbolTable::typeDecl(std::string identifier, Type* type) {
 	if(type == NULL) {
-		yyerror("typeDecl function got an null type");
+		error("typeDecl function got an null type");
 	}
 
 	type->name = identifier;
@@ -235,7 +234,7 @@ void SymbolTable::typeDecl(std::string identifier, Type* type) {
 
 void SymbolTable::funcDecl(std::string identifier, Func* func) {
 	if(func == NULL) {
-		yyerror("funcDecl function got a null");
+		error("funcDecl function got a null");
 	}
 
 	add(identifier, func);
@@ -262,7 +261,7 @@ void SymbolTable::funcDecl(std::string identifier, Func* func) {
 
 void SymbolTable::funcEnd(Func* function, bool isForward) {
 	if(function == NULL) {
-		yyerror("This function is supposed to end but it is null.");
+		error("This function is supposed to end but it is null.");
 	}
 
 	function->isForward = isForward;
@@ -279,7 +278,7 @@ void SymbolTable::funcEnd(Func* function, bool isForward) {
 
 void SymbolTable::procDecl(std::string identifier, Proc* proc) {
 	if(proc == NULL) {
-		yyerror("procDecl got a null proc");
+		error("procDecl got a null proc");
 	}
 
 	add(identifier, proc);
@@ -302,7 +301,7 @@ void SymbolTable::addNewScope() {
 
 Constant* SymbolTable::evalConstant(Constant* left, std::string oper, Constant* right) {
 	if(left == NULL || right == NULL) {
-		yyerror("evalConstant got a null Constant pointer.");
+		error("evalConstant got a null Constant pointer.");
 	}
 
 	if(left->constType == right->constType) {
@@ -319,16 +318,16 @@ Constant* SymbolTable::evalConstant(Constant* left, std::string oper, Constant* 
 			break;
 		default:
 			getInstance()->getErrorStream() << "This is and unknown constant type. I quit.\n";
-			yyerror("Unknown Constant type.");
+			error("Unknown Constant type.");
 		}
 	} else {
-		yyerror("We quit. You are trying to add constants of different types.");
+		error("We quit. You are trying to add constants of different types.");
 	}
 }
 
 Constant* SymbolTable::evalConstant(std::string oper, Constant* right) {
 	if(right == NULL) {
-		yyerror("evalConstant got a null right.");
+		error("evalConstant got a null right.");
 	}
 
 	if(right->constType == CONST_INT) {
@@ -341,12 +340,12 @@ Constant* SymbolTable::evalConstant(std::string oper, Constant* right) {
 		}
 	}
 
-	yyerror("I don't know how to evaluate this constant.");
+	error("I don't know how to evaluate this constant.");
 }
 
 Constant* SymbolTable::evalIntConstant(Constant* left, std::string oper, Constant* right) {
 	if(left == NULL || right == NULL) {
-		yyerror("evalIntConstant got a null Constant pointer.");
+		error("evalIntConstant got a null Constant pointer.");
 	}
 
 	int leftValue = dynamic_cast<IntegerConstant*>(left)->val;
@@ -380,7 +379,7 @@ Constant* SymbolTable::evalIntConstant(Constant* left, std::string oper, Constan
 		return new IntegerConstant(leftValue % rightValue);
 	} 
 
-	yyerror("That was an invalid operator for integers. I quit.\n");
+	error("That was an invalid operator for integers. I quit.\n");
 	exit(1); 
 
 	return NULL;
@@ -388,7 +387,7 @@ Constant* SymbolTable::evalIntConstant(Constant* left, std::string oper, Constan
 
 Constant* SymbolTable::evalCharConstant(Constant* left, std::string oper, Constant* right) {
 	if(left == NULL || right == NULL) {
-		yyerror("evalCharConstant got a null Constant pointer.");
+		error("evalCharConstant got a null Constant pointer.");
 	}
 
 	std::string leftValue = dynamic_cast<CharacterConstant*>(left)->val;
@@ -410,14 +409,14 @@ Constant* SymbolTable::evalCharConstant(Constant* left, std::string oper, Consta
 		return new CharacterConstant(leftValue + rightValue);
 	} 
 
-	yyerror("That was an invalid operator for characters. I quit.");
+	error("That was an invalid operator for characters. I quit.");
 
 	return NULL;
 }
 
 Constant* SymbolTable::evalStrConstant(Constant* left, std::string oper, Constant* right) {
 	if(left == NULL || right == NULL) {
-		yyerror("evalStrConstant got a null Constant pointer.");
+		error("evalStrConstant got a null Constant pointer.");
 	}
 	
 	std::string leftValue = dynamic_cast<StringConstant*>(left)->val;
@@ -439,7 +438,7 @@ Constant* SymbolTable::evalStrConstant(Constant* left, std::string oper, Constan
 		return new CharacterConstant(leftValue + rightValue);
 	} 
 
-	yyerror("That was an invalid operator for strings. I quit.");
+	error("That was an invalid operator for strings. I quit.");
 
 	return NULL;
 }
@@ -448,7 +447,7 @@ Constant* SymbolTable::evalStrConstant(Constant* left, std::string oper, Constan
 
 Expression* SymbolTable::lValueToExpression(LValue* lvalue) {
 	if(lvalue == NULL) {
-		yyerror("lValueToExpression got a null lvalue.");
+		error("lValueToExpression got a null lvalue.");
 	}
 
 	Expression* expression = NULL;
@@ -494,7 +493,7 @@ Expression* SymbolTable::lValueToExpression(LValue* lvalue) {
 		// };
 
 		std::cout << "We found a const LVALUE" << std::endl;
-		yyerror("CONST LVALUE");
+		error("CONST LVALUE");
 	}
 	return expression;
 }
@@ -538,7 +537,7 @@ Constant* SymbolTable::lookupConstant(std::string identifier) {
 
 Expression* SymbolTable::expression(Expression* left, std::string op, Expression* right){
 	if(left == NULL || right == NULL) {
-		yyerror("expression funciton got a null expression.");
+		error("expression funciton got a null expression.");
 	}
 
 	if(left->type == right->type) {
@@ -566,13 +565,13 @@ Expression* SymbolTable::expression(Expression* left, std::string op, Expression
 			return eval(left, right, op);
 		}
 	} else {
-		yyerror("We have a type problem. You must have matching types in expressions.");
+		error("We have a type problem. You must have matching types in expressions.");
 	}
 }
 
 Expression* SymbolTable::expression(std::string, Expression* right){
 	if(right == NULL) {
-		yyerror("expression string right got a null");
+		error("expression string right got a null");
 	}
 
 	// std::cout << "Expression: op, symbol" << std::endl;
@@ -580,9 +579,11 @@ Expression* SymbolTable::expression(std::string, Expression* right){
 }
 
 Expression* SymbolTable::function_call(std::string identifier) {
+	std::ostream& outFile = getInstance()->getFileStream();
+
 	Symbol* symbol = lookup(identifier);
 	if(symbol == NULL) {
-		yyerror("the function is not in the symbol table.");
+		error("the function is not in the symbol table.");
 	}
 
 	Func* function = dynamic_cast<Func*>(symbol);
@@ -590,7 +591,7 @@ Expression* SymbolTable::function_call(std::string identifier) {
 	Expression* expression = new Expression(getRegister());
 	expression->type = function->returnType;
 
-	std::ostream& outFile = getInstance()->getFileStream();
+	
 
 	outFile << "\tjal\t" << identifier << "\t# function call" << std::endl
 			<< "\tmove $" << expression->location << ", $v0" << "\t# move return value to new register." << std::endl;
@@ -599,42 +600,44 @@ Expression* SymbolTable::function_call(std::string identifier) {
 }
 
 Expression* SymbolTable::function_call(std::string identifier, std::deque<Expression*>* expressionList) {
+	std::ostream& outFile = getInstance()->getFileStream();
+
 	if(expressionList == NULL) {
-		yyerror("the expression list for the function is null. I quit.");
+		error("the expression list for the function is null. I quit.");
 	}
 
 	Symbol* symbol = lookup(identifier);
 	if(symbol == NULL) {
-		yyerror("this function is not in the symbol table.");
+		error("this function is not in the symbol table.");
 	}
 
 	Func* function = dynamic_cast<Func*>(symbol);
 
 	if(expressionList->size() != function->signature.size()) {
-		yyerror("The argument list is a different size than the parameter list.");
+		error("The argument list for function (" + function->name + ") is a different size than the parameter list.");
 	}
 
 	Expression* expression = new Expression(getRegister());
 	expression->type = function->returnType;
 
-	std::ostream& outFile = getInstance()->getFileStream();
+	
 
 	for(int i = 0; i < function->signature.size(); i++) {
 		std::pair<std::string, Type*> parameter = function->signature[i];
 		Expression* argument = (*expressionList)[i];
 
 		if(argument == NULL) {
-			yyerror("Argument is a null pointer. Talk to your compiler writer.");
+			error("Argument " + std::to_string(i) + " is a null pointer. Talk to your compiler writer.");
 		}
 
 		if(parameter.second != argument->type) {
-			yyerror("Argument of the function is the wrong type.");
+			error("Argument " + std::to_string(i) + " of the function " + function->name + " is the wrong type.");
 		}
 
 		outFile << "\tmove $a" << i << ", $" << argument->location << "\t# moving value to argument register." << std::endl;
 	}
 
-	outFile << "jal\t" << identifier << "\t# function call" << std::endl
+	outFile << "\tjal\t" << identifier << "\t# function call" << std::endl
 			<< "\tmove $" << expression->location << ", $v0" << "\t# move return value to new register." << std::endl;
 	
 	return expression;
@@ -967,7 +970,7 @@ std::pair<int,int> SymbolTable::lookupExpression(std::string name) {
 
 Expression* SymbolTable::eval(Expression* left, Expression* right, std::string operation) {
 	if(left == NULL || right == NULL) {
-		yyerror("eval got a null expression.");
+		error("eval got a null expression.");
 	}
 
 	int leftLocation = lookup(left);
@@ -988,7 +991,7 @@ Expression* SymbolTable::eval(Expression* left, Expression* right, std::string o
 
 Expression* SymbolTable::evalMult(Expression* left, Expression* right) {
 	if(left == NULL || right == NULL) {
-		yyerror("evalMult got a null expression.");
+		error("evalMult got a null expression.");
 	}
 
 	int leftLocation = lookup(left);
@@ -1007,7 +1010,7 @@ Expression* SymbolTable::evalMult(Expression* left, Expression* right) {
 
 Expression* SymbolTable::evalDiv(Expression* left, Expression* right) {
 	if(left == NULL || right == NULL) {
-		yyerror("evalDiv got a null expression.");
+		error("evalDiv got a null expression.");
 	}
 
 	int leftLocation = lookup(left);
@@ -1026,7 +1029,7 @@ Expression* SymbolTable::evalDiv(Expression* left, Expression* right) {
 
 Expression* SymbolTable::evalMod(Expression* left, Expression* right) {
 	if(left == NULL || right == NULL) {
-		yyerror("evalMod got a null expression.");
+		error("evalMod got a null expression.");
 	}
 
 	int leftLocation = lookup(left);
@@ -1091,11 +1094,11 @@ Expression* SymbolTable::loadImmediateChar(std::string value) {
 
 void SymbolTable::store(Variable* variable, Expression* expression) {
 	if(variable == NULL || expression == NULL) {
-		yyerror("store got a null.");
+		error("store got a null.");
 	}
 
 	if(variable->type != expression->type) {
-		yyerror("Type mismatch on the store.");
+		error("Type mismatch on the store.");
 	}
 
 	std::ofstream& outFile = getInstance()->getFileStream();
@@ -1105,7 +1108,7 @@ void SymbolTable::store(Variable* variable, Expression* expression) {
 
 void SymbolTable::store(Variable* variable, std::string reg) {
 	if(variable == NULL) {
-		yyerror("store got a null.");
+		error("store got a null.");
 	}
 
 	std::ofstream& outFile = getInstance()->getFileStream();
@@ -1155,7 +1158,7 @@ void SymbolTable::afterIf() {
 
 void SymbolTable::ifStatement(Expression* expression) {
 	if(expression->type != lookup("boolean")) {
-		yyerror("You must have a boolean expression in an if statement.");
+		error("You must have a boolean expression in an if statement.");
 	}	
 
 	std::ofstream& outFile = getInstance()->getFileStream();
@@ -1192,13 +1195,13 @@ void SymbolTable::elseStatement() {
 
 void SymbolTable::initFor(std::string identifier, Expression* expression) {
 	if(expression == NULL) {
-		yyerror("initFor got a null expression.");
+		error("initFor got a null expression.");
 	}
 
 	Variable* variable = dynamic_cast<Variable*>(lookup(identifier));
 
 	if(variable->type != expression->type) {
-		yyerror("We have a problem. The initial variable of this for loop is being assigned the wrong type.");
+		error("We have a problem. The initial variable of this for loop is being assigned the wrong type.");
 	}
 
 	For forVar(variable);
@@ -1219,7 +1222,7 @@ void SymbolTable::forLabel(std::string to) {
 
 void SymbolTable::forEval(Expression* expression) {
 	if(expression == NULL) {
-		yyerror("forEval got a null expression.");
+		error("forEval got a null expression.");
 	}
 
 	std::ofstream& outFile = getInstance()->getFileStream();
@@ -1234,7 +1237,7 @@ void SymbolTable::forEval(Expression* expression) {
 	} else if(forVar.to == "DOWN") {
 		outFile << "\tblt $" << counter->location << ", $" << expression->location << ", " << forVar.endLabel << std::endl;
 	} else {
-		yyerror("We don't know if this is an up to or down to for loop.");
+		error("We don't know if this is an up to or down to for loop.");
 	}
 }
 
@@ -1252,7 +1255,7 @@ void SymbolTable::forEnd() {
 	} else if(forVar.to == "DOWN") {
 		outFile << "\tsubi	$" << location << ", $" << location << ", 1" << std::endl;
 	} else {
-		yyerror("We don't know if this is an up to or down to for loop.");
+		error("We don't know if this is an up to or down to for loop.");
 	}
 
 	store(forVar.var, expression);
@@ -1279,7 +1282,7 @@ void SymbolTable::whileInit() {
 
 void SymbolTable::whileBranch(Expression* expression) {
 	if(expression == NULL) {
-		yyerror("whileBranch got a null expression.");
+		error("whileBranch got a null expression.");
 	}
 
 	std::ofstream& outFile = getInstance()->getFileStream();
@@ -1317,7 +1320,7 @@ void SymbolTable::repeatInit() {
 
 void SymbolTable::repeatEnd(Expression* expression) {
 	if(expression == NULL) {
-		yyerror("repeatEnd got a null expression.");
+		error("repeatEnd got a null expression.");
 	}
 
 	std::ofstream& outFile = getInstance()->getFileStream();

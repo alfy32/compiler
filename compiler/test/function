@@ -2,6 +2,9 @@ const
   TABLEN = 20;
   NAMELEN = 24;
 
+var
+  a : integer;
+
 
 function print (var a,b:integer) : integer;
 begin
@@ -16,6 +19,6 @@ end;
 
 
 begin
-  print(20, 30);
-  write(add(12,3));
+  a := print(20,13);
+  write("\na: ", a, '\n', add(12,3));
 end.
