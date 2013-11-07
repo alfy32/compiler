@@ -1,6 +1,7 @@
 #include "SymbolTable.hpp"
 
 extern bool verbose;
+extern int lineNumber;
 
 int For::labelCount = 1;
 int While::labelCount = 1;
@@ -725,10 +726,14 @@ std::deque<std::pair<std::deque<std::string>, Type*> >* SymbolTable::makeRecordI
 	return recordItem;
 }
 
+void SymbolTable::error(std::string e) {
+	std::cout << "Error: " << e << std::endl;
+}
+
 
 void SymbolTable::assignment(LValue* lvalue, Expression* expression) {
 	if(lvalue == NULL || expression == NULL) {
-		yyerror("assignment got a null");
+		error("assignment got a null");
 	}
 
 	int varLoc = lvalue->variable->location;
@@ -833,7 +838,7 @@ void SymbolTable::startMain() {
 
 void SymbolTable::write(std::deque<Expression*>* expressionList) {
 	if(expressionList == NULL) {
-		yyerror("write got a null deque");
+		error("write got a null deque");
 	}
 
 	for(Expression* expression: *expressionList) {
@@ -852,7 +857,7 @@ void SymbolTable::write(std::deque<Expression*>* expressionList) {
 			writeInteger(location);
 		}
 		else {
-			yyerror("Trying to write an unknown type.\n");
+			error("Trying to write an unknown type.\n");
 		}
 	}
 }
@@ -883,7 +888,7 @@ void SymbolTable::writeString(int location) {
 
 void SymbolTable::read(std::deque<LValue*>* lvalueList) {
 	if(lvalueList == NULL) {
-		yyerror("read got a null deque");
+		error("read got a null deque");
 	}
 
 	for(LValue* lvalue : *lvalueList) {
@@ -896,14 +901,14 @@ void SymbolTable::read(std::deque<LValue*>* lvalueList) {
 			readCharacter(variable);
 		}
 		else {
-			yyerror("Trying to read an unknown type..\n");
+			error("Trying to read an unknown type..\n");
 		}
 	}
 }
 
 void SymbolTable::readInteger(Variable* variable) {
 	if(variable == NULL) {
-		yyerror("readInteger got a null variable");
+		error("readInteger got a null variable");
 	}
 
 	std::ofstream& outFile = getInstance()->getFileStream();
@@ -927,7 +932,7 @@ void SymbolTable::readString() {
 
 void SymbolTable::readCharacter(Variable* variable) {
 	if(variable == NULL) {
-		yyerror("readCharacter got a null variable");
+		error("readCharacter got a null variable");
 	}
 
 	std::ofstream& outFile = getInstance()->getFileStream();
@@ -948,7 +953,7 @@ int SymbolTable::getRegister() {
 
 int SymbolTable::lookup(Expression* expression) {
 	if(expression == NULL) {
-		yyerror("lookup got a null expression");
+		error("lookup got a null expression");
 	}
 
 	return expression->location;

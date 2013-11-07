@@ -151,6 +151,7 @@ public:
 	static std::deque<std::string>* makeIdentList(std::string identifier, std::deque<std::string>* identList);
 	static std::deque<std::pair<std::deque<std::string>, Type*> >* makeRecordItem(std::deque<std::string>* identList, Type* type, std::deque<std::pair<std::deque<std::string>, Type*> >* recordItem);
 
+	static void error(std::string);
 
 	static void assignment(LValue*, Expression*);
 
