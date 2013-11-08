@@ -152,7 +152,13 @@ SubVar:         VAR_SYM
 Body:           SubCDecl SubTDecl SubVDecl Block   
                 ;
 
-Block:          BEGIN_SYM StatementSequence END_SYM 
+Block:          Begin StatementSequence End 
+                ;
+
+Begin:          BEGIN_SYM   { SymbolTable::beginBlock();    }
+                ;
+
+End:            END_SYM     { SymbolTable::endBlock();      }
                 ;
 
 /* 3.1.3 Type Declarations */

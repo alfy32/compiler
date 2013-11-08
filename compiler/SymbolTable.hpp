@@ -4,6 +4,7 @@
 #include <fstream>
 #include <deque>
 #include <exception>
+#include <iomanip>
 
 #include "Symbol.hpp"
 
@@ -12,7 +13,7 @@ extern int yyerror(const char*);
 class Expression {
 public:
 	Type* type;
-	int location;
+	std::string location;
 	Constant* constant;
 
 	Expression(int location);
@@ -156,6 +157,17 @@ public:
 
 	static void assignment(LValue*, Expression*);
 
+	////////////////////////// Blocks //////////////////////////////////////////
+
+	static int blockOffset;
+
+	std::deque<Func*> functionStack;
+
+	static void beginBlock();
+	static void endBlock();
+
+	////////////////////////////////////////////////////////////////////////////	
+
 	////////////////////////// Lvalue //////////////////////////////////////////
 
 	static LValue* makeLValue(std::string identifier);
@@ -273,6 +285,12 @@ public:
 	////////////////////////////////////////////////////////////////////////////
 
 	static void stop();
+
+
+	static void printLabel(std::string label, std::string comment);
+	static void printLabel(std::string label);
+	static void printInstruction(std::string instruction, std::string registers, std::string comment);
+	static void printInstruction(std::string instruction, std::string registers);
 };
 
 #endif

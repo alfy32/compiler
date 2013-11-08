@@ -136,6 +136,7 @@ void IntegerConstant::print(std::ostream& out) {
 
 Boolean::Boolean(bool value) {
 	this->val = value;
+	this->constType = CONST_BOOL;
 }
 
 void Boolean::print(std::ostream& out) {

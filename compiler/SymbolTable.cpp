@@ -19,7 +19,7 @@ int SymbolTable::currentConstString = 1;
 
 Expression::Expression(int location) {
 	this->constant = NULL;
-	this->location = location;
+	this->location = std::to_string(location);
 }
 
 Expression::Expression(Constant* constant, Type* type) {
@@ -28,7 +28,7 @@ Expression::Expression(Constant* constant, Type* type) {
 }
 
 int Expression::getLocation() {
-	return this->location;
+	return std::stoi(this->location);
 }
 
 //// End Expression ////
@@ -171,8 +171,8 @@ Table SymbolTable::initializedMainTable() {
 	SimpleType* character = new SimpleType("char");
 	SimpleType* str = new SimpleType("string");
 	SimpleType* boolean = new SimpleType("boolean");
-	SimpleType* boolTrue = new SimpleType("true");
-	SimpleType* boolFalse = new SimpleType("false");
+	Boolean* boolTrue = new Boolean(true);
+	Boolean* boolFalse = new Boolean(false);
 	
 	table.add("integer", integer);
 	table.add("INTEGER", integer);
@@ -241,30 +241,32 @@ void SymbolTable::funcDecl(std::string identifier, Func* func) {
 
 	std::ostream& outFile = getInstance()->getFileStream();
 
-	outFile << identifier << ":\t# ******** " << identifier << " function ********" << std::endl;
+	outFile << std::endl 
+			<< "# ******** " << identifier << " function ********" << std::endl;
+	printLabel(identifier);
 			
 	addNewScope();
+	getInstance()->functionStack.push_back(func);
 
-	int stackSize = 0;
+	// int stackSize = 0;
 
-	for(std::pair<std::string, Type*> pair : func->signature) {
-		stackSize += pair.second->size; 
-	}
+	// for(std::pair<std::string, Type*> pair : func->signature) {
+	// 	stackSize += pair.second->size; 
+	// }
 
-	outFile << "\tsw\t$sp, -4($sp)" << std::endl
-			<< "\taddi\t$sp, $sp, -" << stackSize+8 << std::endl;
+	// outFile << "\taddi\t$sp, $sp, -" << stackSize+4 << std::endl;
 
-	int aReg = 0;
+	// int aReg = 0;
 
-	for(std::pair<std::string, Type*> pair : func->signature) {
-		Variable* var = addVar(pair.first, pair.second);
+	// for(std::pair<std::string, Type*> pair : func->signature) {
+	// 	Variable* var = addVar(pair.first, pair.second);
 
-		std::string reg = "a" + std::to_string(aReg++);
+	// 	std::string reg = "a" + std::to_string(aReg++);
 
-		store(var, reg);
-	}
+	// 	store(var, reg);
+	// }
 
-	outFile << "\tsw\t$ra, " << currentOffset << "($sp)" << std::endl;
+	// outFile << "\tsw\t$ra, " << currentOffset << "($sp)" << std::endl;
 }
 
 void SymbolTable::funcEnd(Func* function, bool isForward) {
@@ -274,12 +276,11 @@ void SymbolTable::funcEnd(Func* function, bool isForward) {
 
 	function->isForward = isForward;
 
-	std::ostream& outFile = getInstance()->getFileStream();
+	// std::ostream& outFile = getInstance()->getFileStream();
 
-	outFile << "\tlw\t$ra " << currentOffset << "($sp)" << std::endl
-			<< "\tlw\t$sp " << currentOffset+4 << "($sp)" << std::endl
-			<< "\taddi\t$sp, $sp, " << currentOffset+8 << std::endl
-			<< "\tjr $ra \t# ******** end " << function->name << " function ********" << std::endl;
+	// outFile << "\tlw\t$ra " << currentOffset << "($sp)" << std::endl
+	// 		<< "\taddi\t$sp, $sp, " << currentOffset+4 << std::endl
+	// 		<< "\tjr $ra \t# ******** end " << function->name << " function ********" << std::endl;
 
 	pop();
 }
@@ -289,9 +290,14 @@ void SymbolTable::returnStatement(Expression* expression) {
 		error("The return expression is null.");
 	}
 
-	std::ostream& outFile = getInstance()->getFileStream();
+	printInstruction("move", "$v0, $" + expression->location, "return statement.");
 
-	outFile << "\tmove\t$v0, $" << expression->location << "\t# return statement." << std::endl; 
+	if(getInstance()->functionStack.size() > 0) {
+
+		printInstruction("lw", "$ra, " + std::to_string(blockOffset-4) + "($sp)");
+		printInstruction("addi", "$sp, $sp, " + std::to_string(blockOffset));
+		printInstruction("jr", "$ra");
+	} 
 }
 
 void SymbolTable::procDecl(std::string identifier, Proc* proc) {
@@ -480,38 +486,35 @@ Expression* SymbolTable::lValueToExpression(LValue* lvalue) {
 
 		return expression;
 	} else {
-		//TODO: get the right constant.
 
-		//ConstType constType = lvalue->constant->constType;
+		ConstType constType = lvalue->constant->constType;
 
-		IntegerConstant* intConst = dynamic_cast<IntegerConstant*>(lvalue->constant);
+		if(constType == CONST_INT) {
+			IntegerConstant* intConst = dynamic_cast<IntegerConstant*>(lvalue->constant);
 			expression = integerConstToExpression(intConst->val);
 			expression->type = dynamic_cast<Type*>(lookup("integer"));
 			return expression;
+		} 
+		else if(constType == CONST_STRING) {
+			StringConstant* strConst = dynamic_cast<StringConstant*>(lvalue->constant);
+			expression = stringConstToExpression(strConst->val);
+			expression->type = dynamic_cast<Type*>(lookup("string"));
+			return expression;
+		} 
+		else if(constType == CONST_CHAR) {
+			CharacterConstant* charConst = dynamic_cast<CharacterConstant*>(lvalue->constant);
+			expression = charConstToExpression(charConst->val);
+			expression->type = dynamic_cast<Type*>(lookup("char"));
+			return expression;
+		} 
+		else if(constType == CONST_BOOL) {
+			Boolean* boolean = dynamic_cast<Boolean*>(lvalue->constant);
+			expression = integerConstToExpression(boolean->val == 1 ? 1 : 0);
+			expression->type = dynamic_cast<Type*>(lookup("boolean"));
+			return expression;
+		}
 
-		// switch(constType) {
-		// case CONST_STRING:
-			
-		// 	StringConstant* strConst = dynamic_cast<StringConstant*>(lvalue->constant);
-		// 	expression = stringConstToExpression(strConst->val);
-		// 	expression->type = dynamic_cast<Type*>(lookup("string"));
-		// 	return expression;
-
-		// 	break;
-		// case CONST_INT:
-
-		// 	IntegerConstant* intConst = dynamic_cast<IntegerConstant*>(lvalue->constant);
-		// 	expression = intConstToExpression(intConst->val);
-		// 	expression->type = dynamic_cast<Type*>(lookup("integer"));
-		// 	return expression;
-
-		// 	break;
-		// case CONST_CHAR:
-		// 	break;
-		// };
-
-		std::cout << "We found a const LVALUE" << std::endl;
-		error("CONST LVALUE");
+		error("lValueToExpression got a constant with an unknown constant type.");
 	}
 	return expression;
 }
@@ -633,10 +636,11 @@ Expression* SymbolTable::function_call(std::string identifier, std::deque<Expres
 		error("The argument list for function (" + function->name + ") is a different size than the parameter list.");
 	}
 
-	Expression* expression = new Expression(getRegister());
-	expression->type = function->returnType;
-
 	int regsToSave = 0;
+
+	currentRegister -= expressionList->size();
+	if(currentRegister < 8 )
+		currentRegister = 8;
 
 	if(currentRegister > 8) {
 		while(currentRegister > 8) {
@@ -644,7 +648,7 @@ Expression* SymbolTable::function_call(std::string identifier, std::deque<Expres
 			currentRegister--;
 			outFile << "\tsw $" << currentRegister << ", -" << regsToSave*4 << "($sp)" << std::endl;
 		}
-		outFile << "addi $sp, $sp, -" << regsToSave*4+4 << std::endl;
+		outFile << "\taddi $sp, $sp, -" << regsToSave*4 << std::endl;
 	}
 
 	for(int i = 0; i < function->signature.size(); i++) {
@@ -665,7 +669,7 @@ Expression* SymbolTable::function_call(std::string identifier, std::deque<Expres
 	outFile << "\tjal\t" << identifier << "\t# function call" << std::endl;
 
 	if(regsToSave) {
-		outFile << "addi $sp, $sp, " << regsToSave*4+4 << std::endl;
+		outFile << "\taddi $sp, $sp, " << regsToSave*4 << std::endl;
 	}
 
 	while(regsToSave) {
@@ -673,6 +677,9 @@ Expression* SymbolTable::function_call(std::string identifier, std::deque<Expres
 		regsToSave--;
 		currentRegister++;
 	}
+
+	Expression* expression = new Expression(getRegister());
+	expression->type = function->returnType;
 
 	outFile	<< "\tmove $" << expression->location << ", $v0" << "\t# move return value to new register." << std::endl;
 	
@@ -766,7 +773,7 @@ std::deque<std::pair<std::deque<std::string>, Type*> >* SymbolTable::makeRecordI
 }
 
 void SymbolTable::error(std::string e) {
-	std::cout << "Error: " << e << std::endl;
+	std::cout << "Error line(" << lineNumber << "): " << e << std::endl;
 }
 
 
@@ -776,12 +783,73 @@ void SymbolTable::assignment(LValue* lvalue, Expression* expression) {
 	}
 
 	int varLoc = lvalue->variable->location;
-	int expLoc = expression->location;
+	int expLoc = expression->getLocation();
 
 	std::ostream& outFile = getInstance()->getFileStream();
 
 	outFile << "\tsw\t$" << expLoc << ", " << varLoc << "($sp)" << "\t# assignment statement." << std::endl;
 }
+
+////////////////////////// Blocks //////////////////////////////////////////
+
+int SymbolTable::blockOffset = 0;
+
+void SymbolTable::beginBlock() {
+	std::ostream& outFile = getInstance()->getFileStream();
+
+	blockOffset = currentOffset + 4;
+
+	Func* function = NULL;
+	if(getInstance()->functionStack.size() > 0) {
+		function = getInstance()->functionStack.back();
+	
+		for(std::pair<std::string, Type*> pair : function->signature) {
+			blockOffset += pair.second->size; 
+		}
+	}
+
+	outFile << "\taddi\t$sp, $sp, -" << blockOffset << std::endl;
+
+	if(function) {
+		int aReg = 0;
+
+		for(std::pair<std::string, Type*> pair : function->signature) {
+			Variable* var = addVar(pair.first, pair.second);
+
+			std::string reg = "a" + std::to_string(aReg++);
+
+			store(var, reg);
+		}
+	}
+
+	outFile << "\tsw  \t$ra, " << blockOffset-4 << "($sp)" << std::endl;
+		
+}
+
+void SymbolTable::endBlock() {
+	std::ostream& outFile = getInstance()->getFileStream();
+
+	if(getInstance()->functionStack.size() > 0) {
+		Func* function = getInstance()->functionStack.back();
+
+		outFile << "# ******** " + function->name + " function ********" << std::endl
+				<< std::endl;
+
+		getInstance()->functionStack.pop_back();
+
+	// 	printInstruction("lw", "$ra, " + std::to_string(blockOffset-4) + "($sp)");
+	// 	printInstruction("addi", "$sp, $sp, " + std::to_string(blockOffset));
+	// 	printInstruction("jr", "$ra");
+	} 
+	else 
+	{
+		// outFile << "\t# end of program." << std::endl;
+	}
+
+	blockOffset = 0;
+}
+
+////////////////////////////////////////////////////////////////////////////
 
 ////////////////////////// Lvalue //////////////////////////////////////////
 
@@ -868,18 +936,19 @@ void SymbolTable::initAssembly() {
 void SymbolTable::startMain() {
 	std::ofstream& outFile = getInstance()->getFileStream();
 
-	outFile << "begin: " << std::endl
-			<< "\tsw\t$sp, -4($sp)" << "\t# prolog." << std::endl
-			<< "\taddi\t$sp, $sp, -" << currentOffset+8 << std::endl
-			<< "\tsw\t$ra, " << currentOffset << "($sp)" << "\t# end prolog." << std::endl;
+	outFile << std::endl
+			<< "# ******** main function ********" << std::endl
+			<< "begin: " << std::endl;
 }
 
 void SymbolTable::endMain() {
 	std::ofstream& outFile = getInstance()->getFileStream();
 
-	outFile << "\tlw\t$ra, " << currentOffset << "($sp)" << "\t# Epilog." << std::endl
-			<< "\tlw\t$sp, " << currentOffset+4 << "($sp)" << std::endl
-			<< "\taddi\t$sp, $sp, " << currentOffset+8 << "\t# End Epilog." << std::endl;
+	// outFile << "\tlw\t$ra, " << currentOffset << "($sp)" << "\t# Epilog." << std::endl
+	// 		<< "\taddi\t$sp, $sp, " << currentOffset+4 << "\t# End Epilog." << std::endl;
+
+	outFile << "# ******** end main function ********" << std::endl
+			<< std::endl;
 
 	pop(); 
 	pop(); 
@@ -1010,7 +1079,7 @@ int SymbolTable::lookup(Expression* expression) {
 		error("lookup got a null expression");
 	}
 
-	return expression->location;
+	return expression->getLocation();
 }
 
 std::pair<int,int> SymbolTable::lookupExpression(std::string name) {
@@ -1024,16 +1093,15 @@ Expression* SymbolTable::eval(Expression* left, Expression* right, std::string o
 		error("eval got a null expression.");
 	}
 
-	int leftLocation = lookup(left);
-	int rightLocation = lookup(right);
+	std::string leftLocation = std::to_string(lookup(left));
+	std::string rightLocation = std::to_string(lookup(right));
 	int resultLocation = getRegister();
+	std::string result = std::to_string(resultLocation);
 
-	std::ofstream& outFile = getInstance()->getFileStream();
-
-	outFile << "\t" << operation << " $" << resultLocation 
-			<< ", $" << leftLocation 
-			<< ", $" << rightLocation
-			<< "\t# evaluating an expression. " << std::endl;
+	printInstruction(operation, "$" + result 
+			+ ", $" + leftLocation 
+			+ ", $" + rightLocation,
+			"evaluating an expression.");
 
 	Expression* expression = new Expression(resultLocation);
 	expression->type = left->type;
@@ -1045,14 +1113,13 @@ Expression* SymbolTable::evalMult(Expression* left, Expression* right) {
 		error("evalMult got a null expression.");
 	}
 
-	int leftLocation = lookup(left);
-	int rightLocation = lookup(right);
+	std::string leftLocation = std::to_string(lookup(left));
+	std::string rightLocation = std::to_string(lookup(right));
 	int resultLocation = getRegister();
+	std::string result = std::to_string(resultLocation);
 
-	std::ofstream& outFile = getInstance()->getFileStream();
-
-	outFile << "\tmult	$" << leftLocation << ", $" << rightLocation << "\t# evaluating multiply expression. " << std::endl
-			<< "\tmflo	$" << resultLocation << std::endl;
+	printInstruction("mult", "$" + leftLocation + ", $" + rightLocation, "evaluating multiply expression.");
+	printInstruction("mflo", "$" + result);
 
 	Expression* expression = new Expression(resultLocation);
 	expression->type = left->type;
@@ -1064,14 +1131,13 @@ Expression* SymbolTable::evalDiv(Expression* left, Expression* right) {
 		error("evalDiv got a null expression.");
 	}
 
-	int leftLocation = lookup(left);
-	int rightLocation = lookup(right);
+	std::string leftLocation = std::to_string(lookup(left));
+	std::string rightLocation = std::to_string(lookup(right));
 	int resultLocation = getRegister();
+	std::string result = std::to_string(resultLocation);
 
-	std::ofstream& outFile = getInstance()->getFileStream();
-
-	outFile << "\tdiv\t$" << leftLocation << ", $" << rightLocation << "\t# evaluating divide expression. " << std::endl
-			<< "\tmflo\t$" << resultLocation << std::endl;
+	printInstruction("div", "$" + leftLocation + ", $" + rightLocation, "evaluating divide expression. ");
+	printInstruction("mflo", "$" + result);
 
 	Expression* expression = new Expression(resultLocation);
 	expression->type = left->type;
@@ -1083,14 +1149,13 @@ Expression* SymbolTable::evalMod(Expression* left, Expression* right) {
 		error("evalMod got a null expression.");
 	}
 
-	int leftLocation = lookup(left);
-	int rightLocation = lookup(right);
+	std::string leftLocation = std::to_string(lookup(left));
+	std::string rightLocation = std::to_string(lookup(right));
 	int resultLocation = getRegister();
+	std::string result = std::to_string(resultLocation);
 
-	std::ofstream& outFile = getInstance()->getFileStream();
-
-	outFile << "\tdiv\t$" << leftLocation << ", $" << rightLocation << "\t# evaluating mod expression. " << std::endl
-			<< "\tmfhi\t$" << resultLocation << std::endl;
+	printInstruction("div", "$" + leftLocation + ", $" + rightLocation, "evaluating mod expression. ");
+	printInstruction("mfhi", "$" + result);
 
 	Expression* expression = new Expression(resultLocation);
 	expression->type = left->type;
@@ -1099,22 +1164,24 @@ Expression* SymbolTable::evalMod(Expression* left, Expression* right) {
 
 Expression* SymbolTable::load(int location) {
 	int resultLocation = getRegister();
-	std::ofstream& outFile = getInstance()->getFileStream();
 
-	outFile << "\tlw\t$" << resultLocation
-			<< ", " << location << "($sp)"
-			<< std::endl;
+	std::string result = std::to_string(resultLocation);
+	std::string loc = std::to_string(location);
+
+	printInstruction("lw" ,"$" + result + ", " + loc + "($sp)");
 
 	return new Expression(resultLocation);
 }
 
 Expression* SymbolTable::load(std::string name) {
-	std::pair<int, int> offset = lookupExpression(name);
+	std::pair<int, int> location = lookupExpression(name);
 	int resultLocation = getRegister();
 
-	std::ofstream& outFile = getInstance()->getFileStream();
+	std::string result = std::to_string(resultLocation);
+	std::string offset = std::to_string(location.first);
+	std::string loc = std::to_string(location.second);
 
-	outFile << "lw $" << resultLocation << ", $" << offset.second << "(" << offset.first << ")" << std::endl;
+	printInstruction("lw", "$" + result + ", $" + loc + "(" + offset + ")" );
 
 	return new Expression(resultLocation); 
 }
@@ -1122,9 +1189,10 @@ Expression* SymbolTable::load(std::string name) {
 Expression* SymbolTable::loadImmediateInt(int value) {
 	int location = getRegister();
 
-	std::ofstream& outFile = getInstance()->getFileStream();
+	std::string loc = std::to_string(location);
+	std::string val = std::to_string(value);
 
-	outFile << "\tli	$" << location << ", " << value << "\t# load const int." << std::endl;
+	printInstruction("li", "$" + loc + ", " + val, "load const int.");
 	
 	Expression* expression = new Expression(location);
 	expression->type = dynamic_cast<Type*>(lookup("integer"));
@@ -1133,10 +1201,10 @@ Expression* SymbolTable::loadImmediateInt(int value) {
 
 Expression* SymbolTable::loadImmediateChar(std::string value) {
 	int location = getRegister();
-	
-	std::ofstream& outFile = getInstance()->getFileStream();
 
-	outFile << "\tli	$" << location << ", " << value << "\t# load const char." << std::endl;
+	std::string loc = std::to_string(location);
+
+	printInstruction("li", "$" + loc + ", " + value, "load const char.");
 	
 	Expression* expression = new Expression(location);
 	expression->type = dynamic_cast<Type*>(lookup("char"));
@@ -1152,9 +1220,9 @@ void SymbolTable::store(Variable* variable, Expression* expression) {
 		error("Type mismatch on the store.");
 	}
 
-	std::ofstream& outFile = getInstance()->getFileStream();
+	std::string varLoc = std::to_string(variable->location);
 
-	outFile << "\tsw	$" << expression->location << ", " << variable->location << "($sp)" << std::endl;
+	printInstruction("sw", "t$" + expression->location + ", " + varLoc + "($sp)");
 }
 
 void SymbolTable::store(Variable* variable, std::string reg) {
@@ -1162,9 +1230,9 @@ void SymbolTable::store(Variable* variable, std::string reg) {
 		error("store got a null.");
 	}
 
-	std::ofstream& outFile = getInstance()->getFileStream();
+	std::string varLoc = std::to_string(variable->location);
 
-	outFile << "\tsw	$" << reg << ", " << variable->location << "($sp)" << std::endl;
+	printInstruction("sw", "$" + reg + ", " + varLoc + "($sp)");
 }
 
 ////////////////////////////////////////////////////////////////////////////
@@ -1202,7 +1270,7 @@ void SymbolTable::afterIf() {
 	std::ofstream& outFile = getInstance()->getFileStream();
 
 	while(getInstance()->endStack.size() > 0) {
-		outFile << endFront() << ":" << std::endl;
+		printLabel(endFront());
 		popEnd();
 	}
 }
@@ -1212,31 +1280,27 @@ void SymbolTable::ifStatement(Expression* expression) {
 		error("You must have a boolean expression in an if statement.");
 	}	
 
-	std::ofstream& outFile = getInstance()->getFileStream();
-
 	pushElse();
 
-	outFile << "\tbeqz $" << expression->location << " " << elseFront() << "\t# if statement." << std::endl;
+	printInstruction("beqz", "$" + expression->location + " " + elseFront(), "if statement.");
 }
 
 void SymbolTable::thenStatement() {
-	std::ofstream& outFile = getInstance()->getFileStream();
-
 	pushEnd();
 
-	outFile << "\tj " << endFront() << std::endl
-			<< elseFront() << ":" << std::endl;
+	printInstruction("j", endFront());
+	printLabel(elseFront());
 
 	popElse();
 }
 
 void SymbolTable::elseIfStatement(Expression* expression) {
-	std::ofstream& outFile = getInstance()->getFileStream();
+
 
 }
 
 void SymbolTable::elseStatement() {
-	std::ofstream& outFile = getInstance()->getFileStream();
+
 }
 
 
@@ -1263,12 +1327,10 @@ void SymbolTable::initFor(std::string identifier, Expression* expression) {
 }
 
 void SymbolTable::forLabel(std::string to) {
-	std::ofstream& outFile = getInstance()->getFileStream();
-
 	getInstance()->forStack.back().to = to;
 	std::string forLabel = getInstance()->forStack.back().forLabel;	
 
-	outFile << forLabel << ":" << std::endl;
+	printLabel(forLabel);
 }
 
 void SymbolTable::forEval(Expression* expression) {
@@ -1276,43 +1338,39 @@ void SymbolTable::forEval(Expression* expression) {
 		error("forEval got a null expression.");
 	}
 
-	std::ofstream& outFile = getInstance()->getFileStream();
-
 	For forVar = getInstance()->forStack.back();
 
 	Expression* counter = load(forVar.var->location);
 	counter->type = forVar.var->type;
 
 	if(forVar.to == "UP") {
-		outFile << "\tbgt $" << counter->location << ", $" << expression->location << ", " << forVar.endLabel << std::endl;
+		printInstruction("bgt", "$" + counter->location + ", $" + expression->location + ", " + forVar.endLabel);
 	} else if(forVar.to == "DOWN") {
-		outFile << "\tblt $" << counter->location << ", $" << expression->location << ", " << forVar.endLabel << std::endl;
+		printInstruction("blt", "$" + counter->location + ", $" + expression->location + ", " + forVar.endLabel);
 	} else {
 		error("We don't know if this is an up to or down to for loop.");
 	}
 }
 
 void SymbolTable::forEnd() {
-	std::ofstream& outFile = getInstance()->getFileStream();
-
 	For forVar = getInstance()->forStack.back();
 
 	Expression* expression = load(forVar.var->location);
 	expression->type = forVar.var->type;
-	int location = expression->location;
+	std::string location = expression->location;
 
 	if(forVar.to == "UP") {
-		outFile << "\taddi	$" << location << ", $" << location << ", 1" << std::endl;
+		printInstruction("addi", "$" + location + ", $" + location + ", 1");
 	} else if(forVar.to == "DOWN") {
-		outFile << "\tsubi	$" << location << ", $" << location << ", 1" << std::endl;
+		printInstruction("subi", "$" + location + ", $" + location + ", 1");
 	} else {
 		error("We don't know if this is an up to or down to for loop.");
 	}
 
 	store(forVar.var, expression);
 
-	outFile	<< "\tb\t" << forVar.forLabel << std::endl
-			<< forVar.endLabel << ":" << std::endl;
+	printInstruction("b", forVar.forLabel);
+	printLabel(forVar.endLabel);
 
 	getInstance()->forStack.pop_back();	
 }
@@ -1336,21 +1394,16 @@ void SymbolTable::whileBranch(Expression* expression) {
 		error("whileBranch got a null expression.");
 	}
 
-	std::ofstream& outFile = getInstance()->getFileStream();
-
 	While whileVar = getInstance()->whileStack.back();
 
-	outFile << "\tbeqz\t $" << expression->location << ", " << whileVar.endLabel << std::endl;
+	printInstruction("beqz", "$" + expression->location + ", " + whileVar.endLabel);
 }
 
 void SymbolTable::whileRepeat() {
-	std::ofstream& outFile = getInstance()->getFileStream();
-
 	While whileVar = getInstance()->whileStack.back();
 
-	outFile << "\tb\t" << whileVar.whileLabel << std::endl;
-
-	outFile << whileVar.endLabel << ":" << std::endl;
+	printInstruction("b", whileVar.whileLabel);
+	printLabel(whileVar.endLabel);
 
 	getInstance()->whileStack.pop_back();
 }
@@ -1360,13 +1413,11 @@ void SymbolTable::whileRepeat() {
 //////////////////////////// Repeat Statements /////////////////////////////
 
 void SymbolTable::repeatInit() {
-	std::ofstream& outFile = getInstance()->getFileStream();
-
 	Repeat repeat;
 
 	getInstance()->repeatStack.push_back(repeat);
 
-	outFile << repeat.repeatLabel << ":" << std::endl;
+	printLabel(repeat.repeatLabel);
 }
 
 void SymbolTable::repeatEnd(Expression* expression) {
@@ -1374,11 +1425,9 @@ void SymbolTable::repeatEnd(Expression* expression) {
 		error("repeatEnd got a null expression.");
 	}
 
-	std::ofstream& outFile = getInstance()->getFileStream();
-
 	Repeat repeat = getInstance()->repeatStack.back();
 
-	outFile << "\tbeqz\t$" << expression->location << ", " << repeat.repeatLabel << std::endl;
+	printInstruction("beqz", "$" + expression->location + ", " + repeat.repeatLabel);
 
 	getInstance()->repeatStack.pop_back();
 }
@@ -1390,6 +1439,31 @@ void SymbolTable::stop() {
 
 	outFile << "\tli  \t$v0, 10		# stop" << std::endl
 			<< "\tsyscall" << std::endl;
+}
+
+
+void SymbolTable::printLabel(std::string label, std::string comment) {
+	std::ofstream& outFile = getInstance()->getFileStream();
+
+	outFile << label << ":" << "  " << comment << std::endl;
+}
+
+void SymbolTable::printLabel(std::string label) {
+	std::ofstream& outFile = getInstance()->getFileStream();
+
+	outFile << label << ":" << std::endl;
+}
+
+void SymbolTable::printInstruction(std::string instruction, std::string registers, std::string comment) {
+	std::ofstream& outFile = getInstance()->getFileStream();
+
+	outFile << "\t" << std::left << std::setw(8) << instruction << registers << "\t# " << comment << std::endl;
+}
+
+void SymbolTable::printInstruction(std::string instruction, std::string registers) {
+	std::ofstream& outFile = getInstance()->getFileStream();
+
+	outFile << "\t" << std::left << std::setw(8) << instruction << registers << std::endl;
 }
 
 //// End SymbolTable ////
