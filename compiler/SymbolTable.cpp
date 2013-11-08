@@ -293,10 +293,13 @@ void SymbolTable::returnStatement(Expression* expression) {
 	printInstruction("move", "$v0, $" + expression->location, "return statement.");
 
 	if(getInstance()->functionStack.size() > 0) {
+		Func* function = getInstance()->functionStack.back();
 
-		printInstruction("lw", "$ra, " + std::to_string(blockOffset-4) + "($sp)");
-		printInstruction("addi", "$sp, $sp, " + std::to_string(blockOffset));
-		printInstruction("jr", "$ra");
+		printInstruction("j", function->name + "_epilog");
+
+	// 	printInstruction("lw", "$ra, " + std::to_string(blockOffset-4) + "($sp)");
+	// 	printInstruction("addi", "$sp, $sp, " + std::to_string(blockOffset));
+	// 	printInstruction("jr", "$ra");
 	} 
 }
 
@@ -600,8 +603,6 @@ Expression* SymbolTable::expression(std::string, Expression* right){
 }
 
 Expression* SymbolTable::function_call(std::string identifier) {
-	std::ostream& outFile = getInstance()->getFileStream();
-
 	Symbol* symbol = lookup(identifier);
 	if(symbol == NULL) {
 		error("the function is not in the symbol table.");
@@ -612,9 +613,12 @@ Expression* SymbolTable::function_call(std::string identifier) {
 	Expression* expression = new Expression(getRegister());
 	expression->type = function->returnType;
 
-	outFile << "\tjal\t" << identifier << "\t# function call" << std::endl
-			<< "\tmove $" << expression->location << ", $v0" << "\t# move return value to new register." << std::endl;
-	
+	printInstruction("jal", identifier, "function call.");
+
+	if(true) { // function
+		printInstruction("move", "$" + expression->location + ", $v0", "move return value to new register.");
+	}
+
 	return expression;
 }
 
@@ -651,7 +655,10 @@ Expression* SymbolTable::function_call(std::string identifier, std::deque<Expres
 		outFile << "\taddi $sp, $sp, -" << regsToSave*4 << std::endl;
 	}
 
-	for(int i = 0; i < function->signature.size(); i++) {
+	int numArgs = function->signature.size();
+	int argLoc = 4;
+
+	for(int i = numArgs-1; i >= 0; i--) {
 		std::pair<std::string, Type*> parameter = function->signature[i];
 		Expression* argument = (*expressionList)[i];
 
@@ -663,10 +670,19 @@ Expression* SymbolTable::function_call(std::string identifier, std::deque<Expres
 			error("Argument " + std::to_string(i) + " of the function " + function->name + " is the wrong type.");
 		}
 
-		outFile << "\tmove $a" << i << ", $" << argument->location << "\t# moving value to argument register." << std::endl;
+		if(i < 4) {
+			printInstruction("move", "$a" + std::to_string(i) + ", $" + argument->location, "moving value to argument register.");
+		}
+
+		argLoc += argument->type->size;
+
+		std::string offset = std::to_string(argLoc);
+
+		printInstruction("sw", "$" + argument->location + ", -" + offset + "($sp)");
 	}
 
-	outFile << "\tjal\t" << identifier << "\t# function call" << std::endl;
+	printInstruction("jal", identifier, "function call.");
+	// outFile << "\tjal\t" << identifier << "\t# function call" << std::endl;
 
 	if(regsToSave) {
 		outFile << "\taddi $sp, $sp, " << regsToSave*4 << std::endl;
@@ -681,8 +697,10 @@ Expression* SymbolTable::function_call(std::string identifier, std::deque<Expres
 	Expression* expression = new Expression(getRegister());
 	expression->type = function->returnType;
 
-	outFile	<< "\tmove $" << expression->location << ", $v0" << "\t# move return value to new register." << std::endl;
-	
+	if(true) { //function
+		outFile	<< "\tmove $" << expression->location << ", $v0" << "\t# move return value to new register." << std::endl;
+	}
+
 	return expression;
 }
 
@@ -782,12 +800,10 @@ void SymbolTable::assignment(LValue* lvalue, Expression* expression) {
 		error("assignment got a null");
 	}
 
-	int varLoc = lvalue->variable->location;
-	int expLoc = expression->getLocation();
+	std::string varLoc = std::to_string(lvalue->variable->location);
+	std::string expLoc = std::to_string(expression->getLocation());
 
-	std::ostream& outFile = getInstance()->getFileStream();
-
-	outFile << "\tsw\t$" << expLoc << ", " << varLoc << "($sp)" << "\t# assignment statement." << std::endl;
+	printInstruction("sw", "$" + expLoc + ", " + varLoc + "($sp)", "assignment statement.");
 }
 
 ////////////////////////// Blocks //////////////////////////////////////////
@@ -816,9 +832,9 @@ void SymbolTable::beginBlock() {
 		for(std::pair<std::string, Type*> pair : function->signature) {
 			Variable* var = addVar(pair.first, pair.second);
 
-			std::string reg = "a" + std::to_string(aReg++);
+			// std::string reg = "a" + std::to_string(aReg++);
 
-			store(var, reg);
+			// store(var, reg);
 		}
 	}
 
@@ -832,14 +848,15 @@ void SymbolTable::endBlock() {
 	if(getInstance()->functionStack.size() > 0) {
 		Func* function = getInstance()->functionStack.back();
 
-		outFile << "# ******** " + function->name + " function ********" << std::endl
-				<< std::endl;
-
 		getInstance()->functionStack.pop_back();
 
-	// 	printInstruction("lw", "$ra, " + std::to_string(blockOffset-4) + "($sp)");
-	// 	printInstruction("addi", "$sp, $sp, " + std::to_string(blockOffset));
-	// 	printInstruction("jr", "$ra");
+		printLabel(function->name + "_epilog");
+		printInstruction("lw", "$ra, " + std::to_string(blockOffset-4) + "($sp)");
+		printInstruction("addi", "$sp, $sp, " + std::to_string(blockOffset));
+		printInstruction("jr", "$ra");
+
+		outFile << "# ******** " + function->name + " function ********" << std::endl
+				<< std::endl;
 	} 
 	else 
 	{

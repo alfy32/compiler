@@ -29,3 +29,14 @@ $fp
 	#locals
 	$fp
 	$ra
+
+
+
+Functions again
+
+int f(int a, int b, int c, int)
+
+
+f(1,2,3,4,5);
+
+li $8, 1

@@ -35,6 +35,11 @@ begin
   return factorial(n-1) * n;
 end;
 
+function lotsOfArgs(a,b,c,d,e,f,g,h : integer) : integer;
+begin
+  return a+b+c+d+f+g+h;
+end;
+
 begin
   a := sayHi();
 
@@ -50,4 +55,8 @@ begin
   write("\nfactorial(3) = ", factorial(3));
   write("\nfactorial(4) = ", factorial(4));
   write("\nfactorial(5) = ", factorial(5));
+
+  write('\n');
+
+  write("\nLots of args = ", lotsOfArgs(1,1,1,1,1,1,1,1));
 end.
