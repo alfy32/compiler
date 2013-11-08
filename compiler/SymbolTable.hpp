@@ -140,6 +140,9 @@ public:
 	static Constant* lookupConstant(std::string identifier);
 	static Expression* expression(Expression* left, std::string op, Expression* right);
 	static Expression* expression(std::string, Expression* right);
+	static int spillRegs(int);
+	static void unspillRegs(int);
+	static void setUpArgs(std::deque<std::pair<std::string, Type*> > signature, std::deque<Expression*> expressionList);
 	static Expression* function_call(std::string identifier);
 	static Expression* function_call(std::string identifier, std::deque<Expression*>*);
 	static Expression* chr(Expression* symbol);

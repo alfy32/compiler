@@ -622,6 +622,66 @@ Expression* SymbolTable::function_call(std::string identifier) {
 	return expression;
 }
 
+int SymbolTable::spillRegs(int expressionListSize) {
+	int numSpilledRegs = 0;
+
+	currentRegister -= expressionListSize;
+	if(currentRegister < 8 )
+		currentRegister = 8;
+
+	if(currentRegister > 8) {
+		while(currentRegister > 8) {
+			numSpilledRegs++;
+			currentRegister--;
+
+			std::string reg = std::to_string(currentRegister);
+			std::string offset = std::to_string(numSpilledRegs*4);
+
+			printInstruction("sw", "$" + reg + ", -" + offset + "($sp)");
+		}
+		printInstruction("addi", "$sp, $sp, -" + std::to_string(numSpilledRegs*4));
+	}
+
+	return numSpilledRegs;
+}
+
+void SymbolTable::unspillRegs(int regsSpilled) {
+	printInstruction("addi", "$sp, $sp, " + std::to_string(regsSpilled*4));
+
+	while(regsSpilled) {
+		printInstruction("lw", "$" + std::to_string(currentRegister) + ", -" + std::to_string(regsSpilled*4) + "($sp)");
+		regsSpilled--;
+		currentRegister++;
+	}
+}
+
+void SymbolTable::setUpArgs(std::deque<std::pair<std::string, Type*> > signature, std::deque<Expression*> expressionList) {
+	int argLoc = 4;
+
+	for(int i = signature.size()-1; i >= 0; i--) {
+		std::pair<std::string, Type*> parameter = signature[i];
+		Expression* argument = expressionList[i];
+
+		if(argument == NULL) {
+			error("Argument " + std::to_string(i) + " is a null pointer. Talk to your compiler writer.");
+		}
+
+		if(parameter.second != argument->type) {
+			error("Argument " + std::to_string(i) + " is the wrong type.");
+		}
+
+		if(i < 4) {
+			printInstruction("move", "$a" + std::to_string(i) + ", $" + argument->location, "moving value to argument register.");
+		}
+
+		argLoc += argument->type->size;
+
+		std::string offset = std::to_string(argLoc);
+
+		printInstruction("sw", "$" + argument->location + ", -" + offset + "($sp)");
+	}
+}
+
 Expression* SymbolTable::function_call(std::string identifier, std::deque<Expression*>* expressionList) {
 	std::ostream& outFile = getInstance()->getFileStream();
 
@@ -640,65 +700,23 @@ Expression* SymbolTable::function_call(std::string identifier, std::deque<Expres
 		error("The argument list for function (" + function->name + ") is a different size than the parameter list.");
 	}
 
-	int regsToSave = 0;
+	int spilledRegs = spillRegs(expressionList->size());
 
-	currentRegister -= expressionList->size();
-	if(currentRegister < 8 )
-		currentRegister = 8;
-
-	if(currentRegister > 8) {
-		while(currentRegister > 8) {
-			regsToSave++;
-			currentRegister--;
-			outFile << "\tsw $" << currentRegister << ", -" << regsToSave*4 << "($sp)" << std::endl;
-		}
-		outFile << "\taddi $sp, $sp, -" << regsToSave*4 << std::endl;
-	}
-
-	int numArgs = function->signature.size();
-	int argLoc = 4;
-
-	for(int i = numArgs-1; i >= 0; i--) {
-		std::pair<std::string, Type*> parameter = function->signature[i];
-		Expression* argument = (*expressionList)[i];
-
-		if(argument == NULL) {
-			error("Argument " + std::to_string(i) + " is a null pointer. Talk to your compiler writer.");
-		}
-
-		if(parameter.second != argument->type) {
-			error("Argument " + std::to_string(i) + " of the function " + function->name + " is the wrong type.");
-		}
-
-		if(i < 4) {
-			printInstruction("move", "$a" + std::to_string(i) + ", $" + argument->location, "moving value to argument register.");
-		}
-
-		argLoc += argument->type->size;
-
-		std::string offset = std::to_string(argLoc);
-
-		printInstruction("sw", "$" + argument->location + ", -" + offset + "($sp)");
-	}
+	setUpArgs(function->signature, *expressionList);
 
 	printInstruction("jal", identifier, "function call.");
 	// outFile << "\tjal\t" << identifier << "\t# function call" << std::endl;
 
-	if(regsToSave) {
-		outFile << "\taddi $sp, $sp, " << regsToSave*4 << std::endl;
-	}
-
-	while(regsToSave) {
-		outFile << "\tlw $" << currentRegister << ", -" << regsToSave*4 << "($sp)" << std::endl;
-		regsToSave--;
-		currentRegister++;
+	if(spilledRegs) {
+		unspillRegs(spilledRegs);
 	}
 
 	Expression* expression = new Expression(getRegister());
 	expression->type = function->returnType;
 
 	if(true) { //function
-		outFile	<< "\tmove $" << expression->location << ", $v0" << "\t# move return value to new register." << std::endl;
+		printInstruction("move", "$" + expression->location + ", $v0", "move return value to new register.");
+		// outFile	<< "\tmove $" << expression->location << ", $v0" << "\t# move return value to new register." << std::endl;
 	}
 
 	return expression;
