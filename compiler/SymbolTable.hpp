@@ -289,7 +289,8 @@ public:
 
 	static void stop();
 
-
+	static void printNewLine();
+	static void printComment(std::string comment);
 	static void printLabel(std::string label, std::string comment);
 	static void printLabel(std::string label);
 	static void printInstruction(std::string instruction, std::string registers, std::string comment);

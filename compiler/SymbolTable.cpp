@@ -241,8 +241,8 @@ void SymbolTable::funcDecl(std::string identifier, Func* func) {
 
 	std::ostream& outFile = getInstance()->getFileStream();
 
-	outFile << std::endl 
-			<< "# ******** " << identifier << " function ********" << std::endl;
+	printNewLine();
+	outFile << "# ******** " << identifier << " function ********" << std::endl;
 	printLabel(identifier);
 			
 	addNewScope();
@@ -539,16 +539,12 @@ Expression* SymbolTable::charConstToExpression(std::string value) {
 }
 
 Expression* SymbolTable::stringConstToExpression(std::string value) {
-	// Type* type = dynamic_cast<Type*>(lookup("string"));
-	// return new Expression(new StringConstant(value), type);
-
 	std::string label = addStringConstant(value);
 
 	int location = getRegister();
 
-	std::ofstream& outFile = getInstance()->getFileStream();
-
-	outFile << "\tla\t$" << location << ", " << label << "\t # const str to reg." << std::endl;
+	std::string loc = std::to_string(location);
+	printInstruction("la", "$" + loc + ", " + label, "const str to reg");
 
 	Expression* expression = new Expression(location);
 	expression->type = dynamic_cast<Type*>(lookup("string"));
@@ -656,9 +652,9 @@ void SymbolTable::unspillRegs(int regsSpilled) {
 }
 
 void SymbolTable::setUpArgs(std::deque<std::pair<std::string, Type*> > signature, std::deque<Expression*> expressionList) {
-	int argLoc = 4;
+	int offset = 4;
 
-	for(int i = signature.size()-1; i >= 0; i--) {
+	for(int i = 0; i < signature.size(); i++) {
 		std::pair<std::string, Type*> parameter = signature[i];
 		Expression* argument = expressionList[i];
 
@@ -670,15 +666,11 @@ void SymbolTable::setUpArgs(std::deque<std::pair<std::string, Type*> > signature
 			error("Argument " + std::to_string(i) + " is the wrong type.");
 		}
 
-		if(i < 4) {
-			printInstruction("move", "$a" + std::to_string(i) + ", $" + argument->location, "moving value to argument register.");
-		}
+		// if(i < 4) {
+		// 	printInstruction("move", "$a" + std::to_string(i) + ", $" + argument->location, "moving value to argument register.");
+		// }
 
-		argLoc += argument->type->size;
-
-		std::string offset = std::to_string(argLoc);
-
-		printInstruction("sw", "$" + argument->location + ", -" + offset + "($sp)");
+		printInstruction("sw", "$" + argument->location + ", -" + std::to_string(offset + i*4 + 4) + "($sp)");
 	}
 }
 
@@ -829,7 +821,6 @@ void SymbolTable::assignment(LValue* lvalue, Expression* expression) {
 int SymbolTable::blockOffset = 0;
 
 void SymbolTable::beginBlock() {
-	std::ostream& outFile = getInstance()->getFileStream();
 
 	blockOffset = currentOffset + 4;
 
@@ -842,7 +833,7 @@ void SymbolTable::beginBlock() {
 		}
 	}
 
-	outFile << "\taddi\t$sp, $sp, -" << blockOffset << std::endl;
+	printInstruction("addi", "$sp, $sp, -" + std::to_string(blockOffset));
 
 	if(function) {
 		int aReg = 0;
@@ -856,8 +847,7 @@ void SymbolTable::beginBlock() {
 		}
 	}
 
-	outFile << "\tsw  \t$ra, " << blockOffset-4 << "($sp)" << std::endl;
-		
+	printInstruction("sw", "$ra, " + std::to_string(blockOffset-4) + "($sp)");
 }
 
 void SymbolTable::endBlock() {
@@ -913,10 +903,11 @@ std::string SymbolTable::addStringConstant(std::string value) {
 }
 
 void SymbolTable::printStringConstants() {
+	printComment("This is the string area:");
+
 	std::ofstream& outFile = getInstance()->getFileStream();
 
-	outFile << "# This is the string area." << std::endl
-			<< "\t.data" << std::endl;
+	outFile << "\t.data" << std::endl;
 
 	for(std::pair<std::string, std::string> pair : getInstance()->stringConstants) {
 		outFile << pair.first << ":\t.asciiz " << pair.second << std::endl;
@@ -948,10 +939,10 @@ void SymbolTable::initAssembly() {
 	std::ofstream& outFile = getInstance()->getFileStream();
 
 	outFile << "\t.text" << std::endl
-			<< "\t.globl main" << std::endl
-			<< "main: " << std::endl
-			<< "\tb begin" << "\t#jump to main." << std::endl;
+			<< "\t.globl main" << std::endl;
 
+	printLabel("main");
+	printInstruction("b", "begin", "jump to main.");
 	/*
 		.text
 		.globl main
@@ -1021,27 +1012,24 @@ void SymbolTable::write(std::deque<Expression*>* expressionList) {
 }
 
 void SymbolTable::writeInteger(int location) {
-	std::ofstream& outFile = getInstance()->getFileStream();
-
-	outFile << "\tli	$v0, 1" << "\t# write int." << std::endl
-		  	<< "\tmove	$a0, $" << location << std::endl
-		  	<< "\tsyscall" << std::endl;
+	std::string loc = std::to_string(location);
+	printInstruction("li", 		"$v0, 1", 		"int to console");
+	printInstruction("move", 	"$a0, $" + loc);
+	printInstruction("syscall", "", 			"end int to console.");
 }
 
 void SymbolTable::writeCharacter(int location) {
-	std::ofstream& outFile = getInstance()->getFileStream();
-
-	outFile << "\tli	$v0, 11" << "\t# write char." << std::endl
-			<< "\tmove	$a0, $" << location << std::endl
-			<< "\tsyscall" << std::endl;
+	std::string loc = std::to_string(location);
+	printInstruction("li", 		"$v0, 11", 		"String to console stuff");
+	printInstruction("move", 	"$a0, $" + loc);
+	printInstruction("syscall", "", 			"End string to console.");
 }
 
 void SymbolTable::writeString(int location) {
-	std::ofstream& outFile = getInstance()->getFileStream();
-
-	outFile << "\tli	$v0, 4" << "\t# write string." << std::endl
-			<< "\tmove	$a0, $" << location << std::endl
-			<< "\tsyscall" << std::endl;
+	std::string loc = std::to_string(location);
+	printInstruction("li", 		"$v0, 4", 		"String to console stuff");
+	printInstruction("move", 	"$a0, $" + loc);
+	printInstruction("syscall", "", 			"End string to console.");
 }
 
 void SymbolTable::read(std::deque<LValue*>* lvalueList) {
@@ -1069,11 +1057,11 @@ void SymbolTable::readInteger(Variable* variable) {
 		error("readInteger got a null variable");
 	}
 
-	std::ofstream& outFile = getInstance()->getFileStream();
+	std::string loc = std::to_string(variable->location);
 
-	outFile << "\tli	$v0, 5" << "\t# read int." << std::endl
-			<< "\tsyscall" << std::endl
-			<< "\tsw	$v0, " << variable->location << "($sp)" << std::endl;
+	printInstruction("li", "$v0, 5", "read int");
+	printInstruction("syscall", "");
+	printInstruction("sw", "$v0, " + loc + "($sp)");
 }
 
 void SymbolTable::readString() {
@@ -1257,7 +1245,7 @@ void SymbolTable::store(Variable* variable, Expression* expression) {
 
 	std::string varLoc = std::to_string(variable->location);
 
-	printInstruction("sw", "t$" + expression->location + ", " + varLoc + "($sp)");
+	printInstruction("sw", "$" + expression->location + ", " + varLoc + "($sp)");
 }
 
 void SymbolTable::store(Variable* variable, std::string reg) {
@@ -1302,8 +1290,6 @@ std::string SymbolTable::endFront() {
 }
 
 void SymbolTable::afterIf() {
-	std::ofstream& outFile = getInstance()->getFileStream();
-
 	while(getInstance()->endStack.size() > 0) {
 		printLabel(endFront());
 		popEnd();
@@ -1415,13 +1401,11 @@ void SymbolTable::forEnd() {
 ///////////////////////////// While Statements /////////////////////////////
 
 void SymbolTable::whileInit() {
-	std::ofstream& outFile = getInstance()->getFileStream();
-
 	While whileVar;
 
 	getInstance()->whileStack.push_back(whileVar);
 
-	outFile << whileVar.whileLabel << ":" << std::endl;
+	printLabel(whileVar.whileLabel);
 }
 
 void SymbolTable::whileBranch(Expression* expression) {
@@ -1470,12 +1454,21 @@ void SymbolTable::repeatEnd(Expression* expression) {
 ////////////////////////////////////////////////////////////////////////////
 
 void SymbolTable::stop() {
-	std::ofstream& outFile = getInstance()->getFileStream();
-
-	outFile << "\tli  \t$v0, 10		# stop" << std::endl
-			<< "\tsyscall" << std::endl;
+	printInstruction("li", "$v0, 10", "stop");
+	printInstruction("syscall", "");
 }
 
+void SymbolTable::printNewLine() {
+	std::ofstream& outFile = getInstance()->getFileStream();
+
+	outFile << std::endl;
+}
+
+void SymbolTable::printComment(std::string comment) {
+	std::ofstream& outFile = getInstance()->getFileStream();
+
+	outFile << "\t" << "# " << comment << std::endl;
+}
 
 void SymbolTable::printLabel(std::string label, std::string comment) {
 	std::ofstream& outFile = getInstance()->getFileStream();
@@ -1492,13 +1485,13 @@ void SymbolTable::printLabel(std::string label) {
 void SymbolTable::printInstruction(std::string instruction, std::string registers, std::string comment) {
 	std::ofstream& outFile = getInstance()->getFileStream();
 
-	outFile << "\t" << std::left << std::setw(8) << instruction << registers << "\t# " << comment << std::endl;
+	outFile << "\t" << std::left << std::setw(8) << instruction << std::setw(15) << registers << "# " << comment << std::endl;
 }
 
 void SymbolTable::printInstruction(std::string instruction, std::string registers) {
 	std::ofstream& outFile = getInstance()->getFileStream();
 
-	outFile << "\t" << std::left << std::setw(8) << instruction << registers << std::endl;
+	outFile << "\t" << std::left << std::setw(8) << instruction << std::setw(15) << registers << std::endl;
 }
 
 //// End SymbolTable ////
