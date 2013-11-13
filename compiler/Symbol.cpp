@@ -186,12 +186,25 @@ void SimpleType::print(std::ostream& out) {
 
 //// Variable ////
 
-Variable::Variable(std::string name, Type* type, int location) {
+Variable::Variable(std::string name, Type* type, int location, bool isLocal) {
 	this->isConstant = false;
+	this->isLocal = isLocal;
 
 	this->name = name;
 	this->type = type;
 	this->location = location;
+}
+
+std::string Variable::getLocation() {
+	if(isLocal) {
+		return std::to_string(location) + "($sp)";
+	} else {
+		return std::to_string(location) + "($gp)";
+	}
+}
+
+int Variable::getOffset() {
+	return location;
 }
 
 void Variable::print(std::ostream& out) {

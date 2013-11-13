@@ -12,6 +12,7 @@ SymbolTable* SymbolTable::symbolTableInstance = NULL;
 int SymbolTable::currentRegister = 8;
 
 int SymbolTable::currentOffset = 0;
+int SymbolTable::globalOffset = 0;
 
 int SymbolTable::currentConstString = 1;
 
@@ -89,6 +90,7 @@ void Table::print() {
 //// SymbolTable ////
 
 SymbolTable::SymbolTable() {
+	asmFileName = "cpsl.asm";
 	//open the mars file
 	openFile();
 
@@ -190,15 +192,26 @@ Table SymbolTable::initializedMainTable() {
 	return table;
 }
 
+bool SymbolTable::isLocalVar() {
+	if(getInstance()->symbolTable.size() <= 2) {
+		return false;
+	} 
+	return true;
+}
+
 void SymbolTable::addVar(std::deque<std::string>* identList, Type* type) {
 	if(identList == NULL || type == NULL) {
 		error("Add var function found a null.");
 	}
 
 	for(std::string identifier : *identList) {
-		Variable* var = new Variable(identifier, type, currentOffset);
+		Variable* var = new Variable(identifier, type, currentOffset, isLocalVar());
 		add(identifier, var);
 		currentOffset += type->size;
+	}
+
+	if(!isLocalVar()) {
+		globalOffset = currentOffset;
 	}
 }
 
@@ -207,9 +220,13 @@ Variable* SymbolTable::addVar(std::string identifier, Type* type) {
 		error("Add var function found a null.");
 	}
 
-	Variable* var = new Variable(identifier, type, currentOffset);
+	Variable* var = new Variable(identifier, type, currentOffset, isLocalVar());
 	add(identifier, var);
 	currentOffset += type->size;
+
+	if(!isLocalVar()) {
+		globalOffset = currentOffset;
+	}
 
 	return var;
 }
@@ -484,7 +501,7 @@ Expression* SymbolTable::lValueToExpression(LValue* lvalue) {
 
 		std::ofstream& outFile = getInstance()->getFileStream();
 
-		expression = load(variable->location);
+		expression = load(variable);
 		expression->type = variable->type;
 
 		return expression;
@@ -653,6 +670,7 @@ void SymbolTable::unspillRegs(int regsSpilled) {
 
 void SymbolTable::setUpArgs(std::deque<std::pair<std::string, Type*> > signature, std::deque<Expression*> expressionList) {
 	int offset = 4;
+	int numArgs = signature.size()*4 + 4;
 
 	for(int i = 0; i < signature.size(); i++) {
 		std::pair<std::string, Type*> parameter = signature[i];
@@ -670,7 +688,7 @@ void SymbolTable::setUpArgs(std::deque<std::pair<std::string, Type*> > signature
 		// 	printInstruction("move", "$a" + std::to_string(i) + ", $" + argument->location, "moving value to argument register.");
 		// }
 
-		printInstruction("sw", "$" + argument->location + ", -" + std::to_string(offset + i*4 + 4) + "($sp)");
+		printInstruction("sw", "$" + argument->location + ", -" + std::to_string(numArgs - i*4) + "($sp)");
 	}
 }
 
@@ -810,10 +828,7 @@ void SymbolTable::assignment(LValue* lvalue, Expression* expression) {
 		error("assignment got a null");
 	}
 
-	std::string varLoc = std::to_string(lvalue->variable->location);
-	std::string expLoc = std::to_string(expression->getLocation());
-
-	printInstruction("sw", "$" + expLoc + ", " + varLoc + "($sp)", "assignment statement.");
+	printInstruction("sw", "$" + expression->location + ", " + lvalue->variable->getLocation(), "assignment statement.");
 }
 
 ////////////////////////// Blocks //////////////////////////////////////////
@@ -823,6 +838,9 @@ int SymbolTable::blockOffset = 0;
 void SymbolTable::beginBlock() {
 
 	blockOffset = currentOffset + 4;
+	if(!isLocalVar()) {
+		blockOffset = globalOffset;
+	}
 
 	Func* function = NULL;
 	if(getInstance()->functionStack.size() > 0) {
@@ -1020,16 +1038,16 @@ void SymbolTable::writeInteger(int location) {
 
 void SymbolTable::writeCharacter(int location) {
 	std::string loc = std::to_string(location);
-	printInstruction("li", 		"$v0, 11", 		"String to console stuff");
+	printInstruction("li", 		"$v0, 11", 		"char to console stuff");
 	printInstruction("move", 	"$a0, $" + loc);
-	printInstruction("syscall", "", 			"End string to console.");
+	printInstruction("syscall", "", 			"End char to console.");
 }
 
 void SymbolTable::writeString(int location) {
 	std::string loc = std::to_string(location);
-	printInstruction("li", 		"$v0, 4", 		"String to console stuff");
-	printInstruction("move", 	"$a0, $" + loc);
-	printInstruction("syscall", "", 			"End string to console.");
+	printInstruction("li", 		"$v0, 4", 		"str to console stuff");
+	printInstruction("move", 	"$a0, $" + loc, " ");
+	printInstruction("syscall", "", 			"End str to console.");
 }
 
 void SymbolTable::read(std::deque<LValue*>* lvalueList) {
@@ -1057,11 +1075,9 @@ void SymbolTable::readInteger(Variable* variable) {
 		error("readInteger got a null variable");
 	}
 
-	std::string loc = std::to_string(variable->location);
-
 	printInstruction("li", "$v0, 5", "read int");
 	printInstruction("syscall", "");
-	printInstruction("sw", "$v0, " + loc + "($sp)");
+	printInstruction("sw", "$v0, " + variable->getLocation());
 }
 
 void SymbolTable::readString() {
@@ -1085,12 +1101,12 @@ void SymbolTable::readCharacter(Variable* variable) {
 
 	outFile << "\tli	$v0, 12" << "\t# read char." << std::endl
 			<< "\tsyscall" << std::endl
-			<< "\tsw	$v0, " << variable->location << "($sp)" << std::endl;
+			<< "\tsw	$v0, " << variable->getLocation() << std::endl;
 }
 
 ////////////////////////////////////////////////////////////////////////////
 
-///////////////////////////// Expressoins //////////////////////////////////
+///////////////////////////// Expressions //////////////////////////////////
 
 
 int SymbolTable::getRegister() {
@@ -1185,6 +1201,16 @@ Expression* SymbolTable::evalMod(Expression* left, Expression* right) {
 	return expression;
 }
 
+Expression* SymbolTable::load(Variable* var) {
+	int resultLocation = getRegister();
+
+	std::string result = std::to_string(resultLocation);
+
+	printInstruction("lw" ,"$" + result + ", " + var->getLocation());
+
+	return new Expression(resultLocation);
+}
+
 Expression* SymbolTable::load(int location) {
 	int resultLocation = getRegister();
 
@@ -1243,9 +1269,7 @@ void SymbolTable::store(Variable* variable, Expression* expression) {
 		error("Type mismatch on the store.");
 	}
 
-	std::string varLoc = std::to_string(variable->location);
-
-	printInstruction("sw", "$" + expression->location + ", " + varLoc + "($sp)");
+	printInstruction("sw", "$" + expression->location + ", " + variable->getLocation());
 }
 
 void SymbolTable::store(Variable* variable, std::string reg) {
@@ -1253,9 +1277,7 @@ void SymbolTable::store(Variable* variable, std::string reg) {
 		error("store got a null.");
 	}
 
-	std::string varLoc = std::to_string(variable->location);
-
-	printInstruction("sw", "$" + reg + ", " + varLoc + "($sp)");
+	printInstruction("sw", "$" + reg + ", " + variable->getLocation());
 }
 
 ////////////////////////////////////////////////////////////////////////////
@@ -1361,7 +1383,7 @@ void SymbolTable::forEval(Expression* expression) {
 
 	For forVar = getInstance()->forStack.back();
 
-	Expression* counter = load(forVar.var->location);
+	Expression* counter = load(forVar.var);
 	counter->type = forVar.var->type;
 
 	if(forVar.to == "UP") {
@@ -1376,7 +1398,7 @@ void SymbolTable::forEval(Expression* expression) {
 void SymbolTable::forEnd() {
 	For forVar = getInstance()->forStack.back();
 
-	Expression* expression = load(forVar.var->location);
+	Expression* expression = load(forVar.var);
 	expression->type = forVar.var->type;
 	std::string location = expression->location;
 

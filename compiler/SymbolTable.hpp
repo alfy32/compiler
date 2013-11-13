@@ -98,7 +98,7 @@ private:
 	std::ofstream outputFile;
 	std::ofstream verboseFile;
 public:
-	std::string asmFileName = "cpsl.asm";
+	std::string asmFileName;
 	void openFile();
 	std::ofstream& getFileStream();
 	std::ostream& getErrorStream();
@@ -112,12 +112,14 @@ public:
 	SymbolTable();
 
 	static int currentOffset;
+	static int globalOffset;
 	static int currentConstString;
 
 	static void add(std::string identifier, Symbol* symbol);
 	static Symbol* lookup(std::string name);
 	static void pop();
 	static Table initializedMainTable();
+	static bool isLocalVar();
 	static void addVar(std::deque<std::string>* identList, Type* type);
 	static Variable* addVar(std::string identifier, Type* type);
 	static void constDecl(std::string identifier, Constant* constExpression);
@@ -224,6 +226,7 @@ public:
 	static Expression* evalMult(Expression* left, Expression* right);
 	static Expression* evalDiv(Expression* left, Expression* right);
 	static Expression* evalMod(Expression* left, Expression* right);
+	static Expression* load(Variable* var);
 	static Expression* load(int location);
 	static Expression* load(std::string name);
 	static Expression* loadImmediateInt(int value);

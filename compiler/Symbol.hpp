@@ -83,11 +83,15 @@ public:
 };
 
 class Variable : public Symbol {
+private:
+	int location;
+	bool isLocal;
 public:
 	Type* type;
-	int location;
 
-	Variable(std::string name, Type* type, int location);
+	Variable(std::string name, Type* type, int location, bool isLocal);
+	std::string getLocation();
+	int getOffset();
 	virtual void print(std::ostream&);
 };
 
