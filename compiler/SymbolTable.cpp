@@ -249,89 +249,47 @@ void SymbolTable::typeDecl(std::string identifier, Type* type) {
 	add(identifier, type);
 }
 
-void SymbolTable::funcDecl(std::string identifier, Func* func) {
-	if(func == NULL) {
-		error("funcDecl function got a null");
+void SymbolTable::funcProcDecl(std::string identifier, FunctionProcedure* funcProc) {
+	if(funcProc == NULL) {
+		error("funcProcDecl got a null function of procedure");
 	}
 
-	add(identifier, func);
+	add(identifier, funcProc);
 
 	std::ostream& outFile = getInstance()->getFileStream();
+	std::string which = "function";
+	if(funcProc->returnType == NULL)
+		which = "procedure";
 
 	printNewLine();
-	outFile << "# ******** " << identifier << " function ********" << std::endl;
+	outFile << "# ******** " << identifier << " " + which + " ********" << std::endl;
 	printLabel(identifier);
 			
 	addNewScope();
-	getInstance()->functionStack.push_back(func);
-
-	// int stackSize = 0;
-
-	// for(std::pair<std::string, Type*> pair : func->signature) {
-	// 	stackSize += pair.second->size; 
-	// }
-
-	// outFile << "\taddi\t$sp, $sp, -" << stackSize+4 << std::endl;
-
-	// int aReg = 0;
-
-	// for(std::pair<std::string, Type*> pair : func->signature) {
-	// 	Variable* var = addVar(pair.first, pair.second);
-
-	// 	std::string reg = "a" + std::to_string(aReg++);
-
-	// 	store(var, reg);
-	// }
-
-	// outFile << "\tsw\t$ra, " << currentOffset << "($sp)" << std::endl;
+	getInstance()->functionProcedureStack.push_back(funcProc);
 }
 
-void SymbolTable::funcEnd(Func* function, bool isForward) {
-	if(function == NULL) {
-		error("This function is supposed to end but it is null.");
+void SymbolTable::funcProcEnd(FunctionProcedure* funcProc, bool isForward) {
+	if(funcProc == NULL) {
+		error("NULL pointer.");
 	}
-
-	function->isForward = isForward;
-
-	// std::ostream& outFile = getInstance()->getFileStream();
-
-	// outFile << "\tlw\t$ra " << currentOffset << "($sp)" << std::endl
-	// 		<< "\taddi\t$sp, $sp, " << currentOffset+4 << std::endl
-	// 		<< "\tjr $ra \t# ******** end " << function->name << " function ********" << std::endl;
-
+	funcProc->isForward = isForward;
 	pop();
 }
 
 void SymbolTable::returnStatement(Expression* expression) {
-	if(expression == NULL) {
-		error("The return expression is null.");
-	}
+	if(getInstance()->functionProcedureStack.size() > 0) {
+		FunctionProcedure* functionProcedure = getInstance()->functionProcedureStack.back();
 
-	printInstruction("move", "$v0, $" + expression->location, "return statement.");
+		if(functionProcedure->returnType) {
+			if(expression == NULL)
+				error("NULL return expression.");
 
-	if(getInstance()->functionStack.size() > 0) {
-		Func* function = getInstance()->functionStack.back();
+			printInstruction("move", "$v0, $" + expression->location, "return statement.");
+		}
 
-		printInstruction("j", function->name + "_epilog");
-
-	// 	printInstruction("lw", "$ra, " + std::to_string(blockOffset-4) + "($sp)");
-	// 	printInstruction("addi", "$sp, $sp, " + std::to_string(blockOffset));
-	// 	printInstruction("jr", "$ra");
+		printInstruction("j", functionProcedure->name + "_epilog");
 	} 
-}
-
-void SymbolTable::procDecl(std::string identifier, Proc* proc) {
-	if(proc == NULL) {
-		error("procDecl got a null proc");
-	}
-
-	add(identifier, proc);
-
-	addNewScope();
-
-	for(std::pair<std::string, Type*> pair : proc->signature) {
-		add(pair.first, pair.second);
-	}
 }
 
 void SymbolTable::addNewScope() {
@@ -615,26 +573,6 @@ Expression* SymbolTable::expression(std::string, Expression* right){
 	return right;
 }
 
-Expression* SymbolTable::function_call(std::string identifier) {
-	Symbol* symbol = lookup(identifier);
-	if(symbol == NULL) {
-		error("the function is not in the symbol table.");
-	}
-
-	Func* function = dynamic_cast<Func*>(symbol);
-
-	Expression* expression = new Expression(getRegister());
-	expression->type = function->returnType;
-
-	printInstruction("jal", identifier, "function call.");
-
-	if(true) { // function
-		printInstruction("move", "$" + expression->location + ", $v0", "move return value to new register.");
-	}
-
-	return expression;
-}
-
 int SymbolTable::spillRegs(int expressionListSize) {
 	int numSpilledRegs = 0;
 
@@ -692,30 +630,60 @@ void SymbolTable::setUpArgs(std::deque<std::pair<std::string, Type*> > signature
 	}
 }
 
-Expression* SymbolTable::function_call(std::string identifier, std::deque<Expression*>* expressionList) {
-	std::ostream& outFile = getInstance()->getFileStream();
-
-	if(expressionList == NULL) {
-		error("the expression list for the function is null. I quit.");
+void SymbolTable::procedure_call(std::string identifier, std::deque<Expression*>* expressionList) {
+	Symbol* symbol = lookup(identifier);
+	if(symbol == NULL) {
+		error("this procedure is not in the symbol table.");
 	}
 
+	FunctionProcedure* procedure = dynamic_cast<FunctionProcedure*>(symbol);
+
+	if(procedure->returnType)
+		error("This identifier is a function. I'm expecting a procedure.");
+
+	int spilledRegs = 0;
+
+	if(expressionList != NULL) {
+		if(expressionList->size() != procedure->signature.size()) {
+			error("The argument list for procedure (" + procedure->name + ") is a different size than the parameter list.");
+		}
+
+		spilledRegs = spillRegs(expressionList->size());
+
+		setUpArgs(procedure->signature, *expressionList);
+	}
+
+	printInstruction("jal", identifier, "procedure call.");
+
+	if(spilledRegs) {
+		unspillRegs(spilledRegs);
+	}
+}
+
+Expression* SymbolTable::function_call(std::string identifier, std::deque<Expression*>* expressionList) {
 	Symbol* symbol = lookup(identifier);
 	if(symbol == NULL) {
 		error("this function is not in the symbol table.");
 	}
 
-	Func* function = dynamic_cast<Func*>(symbol);
+	FunctionProcedure* function = dynamic_cast<FunctionProcedure*>(symbol);
 
-	if(expressionList->size() != function->signature.size()) {
-		error("The argument list for function (" + function->name + ") is a different size than the parameter list.");
+	if(function->returnType == NULL)
+		error("This identifier is a procedure not a function.");
+
+	int spilledRegs = 0;
+
+	if(expressionList != NULL) {
+		if(expressionList->size() != function->signature.size()) {
+			error("The argument list for function (" + function->name + ") is a different size than the parameter list.");
+		}
+
+		spilledRegs = spillRegs(expressionList->size());
+
+		setUpArgs(function->signature, *expressionList);
 	}
 
-	int spilledRegs = spillRegs(expressionList->size());
-
-	setUpArgs(function->signature, *expressionList);
-
 	printInstruction("jal", identifier, "function call.");
-	// outFile << "\tjal\t" << identifier << "\t# function call" << std::endl;
 
 	if(spilledRegs) {
 		unspillRegs(spilledRegs);
@@ -724,11 +692,8 @@ Expression* SymbolTable::function_call(std::string identifier, std::deque<Expres
 	Expression* expression = new Expression(getRegister());
 	expression->type = function->returnType;
 
-	if(true) { //function
-		printInstruction("move", "$" + expression->location + ", $v0", "move return value to new register.");
-		// outFile	<< "\tmove $" << expression->location << ", $v0" << "\t# move return value to new register." << std::endl;
-	}
-
+	printInstruction("move", "$" + expression->location + ", $v0", "move return value to new register.");
+	
 	return expression;
 }
 
@@ -819,7 +784,8 @@ std::deque<std::pair<std::deque<std::string>, Type*> >* SymbolTable::makeRecordI
 }
 
 void SymbolTable::error(std::string e) {
-	std::cout << "Error line(" << lineNumber << "): " << e << std::endl;
+	std::cout << "Compile error line(" << lineNumber << "): " << e << std::endl;
+	exit(1);
 }
 
 
@@ -842,21 +808,21 @@ void SymbolTable::beginBlock() {
 		blockOffset = globalOffset;
 	}
 
-	Func* function = NULL;
-	if(getInstance()->functionStack.size() > 0) {
-		function = getInstance()->functionStack.back();
+	FunctionProcedure* functionProcedure = NULL;
+	if(getInstance()->functionProcedureStack.size() > 0) {
+		functionProcedure = getInstance()->functionProcedureStack.back();
 	
-		for(std::pair<std::string, Type*> pair : function->signature) {
+		for(std::pair<std::string, Type*> pair : functionProcedure->signature) {
 			blockOffset += pair.second->size; 
 		}
 	}
 
 	printInstruction("addi", "$sp, $sp, -" + std::to_string(blockOffset));
 
-	if(function) {
+	if(functionProcedure) {
 		int aReg = 0;
 
-		for(std::pair<std::string, Type*> pair : function->signature) {
+		for(std::pair<std::string, Type*> pair : functionProcedure->signature) {
 			Variable* var = addVar(pair.first, pair.second);
 
 			// std::string reg = "a" + std::to_string(aReg++);
@@ -871,20 +837,20 @@ void SymbolTable::beginBlock() {
 void SymbolTable::endBlock() {
 	std::ostream& outFile = getInstance()->getFileStream();
 
-	if(getInstance()->functionStack.size() > 0) {
-		Func* function = getInstance()->functionStack.back();
+	if(getInstance()->functionProcedureStack.size() > 0) {
+		FunctionProcedure* functionProcedure = getInstance()->functionProcedureStack.back();
 
-		getInstance()->functionStack.pop_back();
+		getInstance()->functionProcedureStack.pop_back();
 
-		printLabel(function->name + "_epilog");
+		printLabel(functionProcedure->name + "_epilog");
 		printInstruction("lw", "$ra, " + std::to_string(blockOffset-4) + "($sp)");
 		printInstruction("addi", "$sp, $sp, " + std::to_string(blockOffset));
 		printInstruction("jr", "$ra");
 
-		outFile << "# ******** " + function->name + " function ********" << std::endl
+		outFile << "# ******** " + functionProcedure->name + " functionProcedure ********" << std::endl
 				<< std::endl;
 	} 
-	else 
+	else
 	{
 		// outFile << "\t# end of program." << std::endl;
 	}

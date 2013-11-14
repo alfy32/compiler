@@ -116,24 +116,14 @@ public:
 	virtual void print(std::ostream&);
 };
 
-class Func : public Symbol {
+class FunctionProcedure : public Symbol {
 public:
 	std::deque<std::pair<std::string, Type*> > signature;
 	Type* returnType;
 
 	bool isForward;
 
-	Func(std::string identifier, std::deque<std::pair<std::deque<std::string>, Type*> >* formalParams, Type* returnType);
-	virtual void print(std::ostream&);
-};
-
-class Proc : public Symbol {
-public:
-	std::deque<std::pair<std::string, Type*> > signature;
-
-	bool isForward;
-
-	Proc(std::string identifier, std::deque<std::pair<std::deque<std::string>, Type*> >* formalParams);
+	FunctionProcedure(std::string identifier, std::deque<std::pair<std::deque<std::string>, Type*> >* formalParams, Type* returnType);
 	virtual void print(std::ostream&);
 };
 

@@ -294,16 +294,15 @@ void Array::print(std::ostream& out) {
 
 //// End Array ////
 
-//// Func ////
+//// FunctionProcedure ////
 
-Func::Func(std::string identifier, std::deque<std::pair<std::deque<std::string>, Type*> >* formalParams, Type* returnType) {
+FunctionProcedure::FunctionProcedure(std::string identifier, std::deque<std::pair<std::deque<std::string>, Type*> >* formalParams, Type* returnType) {
 	isConstant = false;
 
 	this->name = identifier;
 	this->returnType = returnType;
 
 	if(formalParams) {
-
 		for(int i = 0; i < formalParams->size(); i++) {
 			std::pair<std::deque<std::string>, Type*> formalParam = (*formalParams)[i];
 			Type* type = formalParam.second;
@@ -318,10 +317,13 @@ Func::Func(std::string identifier, std::deque<std::pair<std::deque<std::string>,
 	}
 }
 
-void Func::print(std::ostream& out) {
-	out << "\tFunction: " << std::endl
-			  << "\tLabel/Location: " << name << std::endl
-			  << "\tParameters start*********:" << std::endl;
+void FunctionProcedure::print(std::ostream& out) {
+	if(returnType)
+		out << "\tFunction: " << std::endl;
+	else
+		out << "\tProcedure: " << std::endl;
+	out << "\tLabel/Location: " << name << std::endl
+		<< "\tParameters start*********:" << std::endl;
 
 	int paramCount = 1;
 
@@ -331,36 +333,9 @@ void Func::print(std::ostream& out) {
 	}
 
 	out << "\tParameters End*********:" << std::endl;
+
+	if(returnType)
+		out << "\tReturnType: " << returnType << std::endl;
 }	
 
-//// End Func ////
-
-//// Proc ////
-
-Proc::Proc(std::string identifier, std::deque<std::pair<std::deque<std::string>, Type*> >* formalParams) {
-	isConstant = false;
-
-	this->name = identifier;
-
-	if(formalParams) {
-
-		for(int i = 0; i < formalParams->size(); i++) {
-			std::pair<std::deque<std::string>, Type*> formalParam = (*formalParams)[i];
-			Type* type = formalParam.second;
-			std::deque<std::string> identifiers = formalParam.first;
-
-			for(int j = 0; j < identifiers.size(); j++) {
-				std::pair<std::string, Type*> thePair = std::make_pair(identifiers[j], type);
-
-				signature.push_back(thePair);
-			}
-		}
-	}
-}	
-
-void Proc::print(std::ostream& out) {
-	out << "\tProcedure: " << std::endl
-			  << "\tName/Label/Location: " << name << std::endl; 
-}	
-
-//// End Proc ////
+//// End FunctionProcedure ////

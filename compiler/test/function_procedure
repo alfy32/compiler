@@ -5,20 +5,23 @@ const
 var
   a : integer;
 
-function sayHi() : boolean;
+procedure sayHi();
 begin
   write("Hi\n");
-  return true;
 end;
 
-function print (var b,c:integer) : integer;
+procedure printGlobal();
+begin
+  write("Global a=", a, '\n');
+end;
+
+procedure print (var b,c:integer);
 var 
  f : boolean;
 begin
-  write("The print function will say hi: ");
-  f := sayHi();
+  write("The print procedure will say hi: ");
+  sayHi();
   write("B: ", b, " C: ", c);
-  return 2;
 end;
 
 function add (a,b: integer) : integer;
@@ -41,13 +44,14 @@ begin
 end;
 
 begin
-  a := sayHi();
+  a := 55;
 
-  write(sayHi(), " was returned by sayHi().\n");
+  sayHi();
 
-  write("SayHi() returned: ", a, '\n');
+  write("Calling printGlobal. It should print 55...\n");
+  printGlobal();
 
-  a := print(20,13);
+  print(20,13);
   write("\na: ", a,'\n', "add(12,3)=", add(12,3), '\n');
 
   write("\nfactorial(1) = ", factorial(1));

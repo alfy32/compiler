@@ -54,7 +54,7 @@ test: all
 	java -jar mars.jar cpsl.asm
 	./cpsl test/for_statements
 	java -jar mars.jar cpsl.asm
-	./cpsl test/function
+	./cpsl test/function_procedure
 	java -jar mars.jar cpsl.asm
 	./cpsl test/if_statements
 	java -jar mars.jar cpsl.asm
@@ -74,7 +74,7 @@ bigTest: all
 	java -jar mars.jar cpsl.asm
 
 functions: all
-	./cpsl test/function
+	./cpsl test/function_procedure
 	java -jar mars.jar cpsl.asm
 
 expressions: all

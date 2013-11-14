@@ -20,8 +20,7 @@ extern int lineNumber;
     Symbol* symbol_val;
     Constant* const_val;
     Type* type_val;
-    Func* functionSig;
-    Proc* procedureSig;
+    FunctionProcedure* paremters;
     Expression* expression;
     Variable* variable;
     LValue* lvalue;
@@ -44,8 +43,7 @@ extern int lineNumber;
 %type <identList> IdentList
 %type <recordItem> RecordItem FormalParameters
 %type <type_val> Type SimpleType ArrayType RecordType
-%type <functionSig> FunctionSig
-%type <procedureSig> ProcedureSig
+%type <paremters> FunctionSig ProcedureSig
 
 %start Program
  
@@ -130,14 +128,14 @@ ProcedureDecl:  ProcedureSig FORWARD_SYM SEMICOLON_SYM  { SymbolTable::pop(); }
                 | ProcedureSig Body SEMICOLON_SYM       { SymbolTable::pop(); }  
                 ;
 
-ProcedureSig:   PROCEDURE_SYM IDENT_SYM L_PAREN_SYM FormalParameters R_PAREN_SYM SEMICOLON_SYM  { $$ = new Proc($2, $4); SymbolTable::procDecl($2, $$); }
+ProcedureSig:   PROCEDURE_SYM IDENT_SYM L_PAREN_SYM FormalParameters R_PAREN_SYM SEMICOLON_SYM  { $$ = new FunctionProcedure($2, $4, NULL); SymbolTable::funcProcDecl($2, $$); }
                 ;
 
-FunctionDecl:   FunctionSig FORWARD_SYM SEMICOLON_SYM   { SymbolTable::funcEnd($1, true); }
-                | FunctionSig Body SEMICOLON_SYM        { SymbolTable::funcEnd($1, false); }
+FunctionDecl:   FunctionSig FORWARD_SYM SEMICOLON_SYM   { SymbolTable::funcProcEnd($1, true); }
+                | FunctionSig Body SEMICOLON_SYM        { SymbolTable::funcProcEnd($1, false); }
                 ;
 
-FunctionSig:    FUNCTION_SYM IDENT_SYM L_PAREN_SYM FormalParameters R_PAREN_SYM COLON_SYM Type SEMICOLON_SYM { $$ = new Func($2, $4, $7); SymbolTable::funcDecl($2, $$); }
+FunctionSig:    FUNCTION_SYM IDENT_SYM L_PAREN_SYM FormalParameters R_PAREN_SYM COLON_SYM Type SEMICOLON_SYM { $$ = new FunctionProcedure($2, $4, $7); SymbolTable::funcProcDecl($2, $$); }
                 ;
 
 FormalParameters: /* nothing */                                                     { $$ = NULL; }
@@ -215,7 +213,7 @@ Statement:      Assignemnt          { SymbolTable::endStatement(); }
                 | ReturnStatement   { SymbolTable::endStatement(); }
                 | ReadStatement     { SymbolTable::endStatement(); }
                 | WriteStatement    { SymbolTable::endStatement(); }
-                | ProcedureCall     
+                | ProcedureCall     { SymbolTable::endStatement(); }
                 | NullStatement     { SymbolTable::endStatement(); }
                 ;
 
@@ -297,8 +295,8 @@ ExpressionList: Expression                              { $$ = SymbolTable::make
                 | Expression COMMA_SYM ExpressionList   { $$ = SymbolTable::makeExpressionList($1, $3); }
                 ;
 
-ProcedureCall: IDENT_SYM L_PAREN_SYM R_PAREN_SYM
-                | IDENT_SYM L_PAREN_SYM ExpressionList R_PAREN_SYM
+ProcedureCall: IDENT_SYM L_PAREN_SYM R_PAREN_SYM                    { SymbolTable::procedure_call($1, NULL);    }
+                | IDENT_SYM L_PAREN_SYM ExpressionList R_PAREN_SYM  { SymbolTable::procedure_call($1, $3);      }
                 ;
 
 NullStatement: 
@@ -322,7 +320,7 @@ Expression:     Expression OR_SYM Expression            { $$ = SymbolTable::expr
                 | TILDE_SYM Expression                  { $$ = SymbolTable::expression("~", $2); }
                 | NEG_SYM Expression                    { $$ = SymbolTable::expression("Neg", $2); }
                 | L_PAREN_SYM Expression R_PAREN_SYM    { $$ = $2; }
-                | IDENT_SYM L_PAREN_SYM R_PAREN_SYM     { $$ = SymbolTable::function_call($1); }
+                | IDENT_SYM L_PAREN_SYM R_PAREN_SYM     { $$ = SymbolTable::function_call($1, NULL); }
                 | IDENT_SYM L_PAREN_SYM ExpressionList R_PAREN_SYM  { $$ = SymbolTable::function_call($1, $3); }
                 | CHR_SYM L_PAREN_SYM Expression R_PAREN_SYM        { $$ = SymbolTable::chr($3); }
                 | ORD_SYM L_PAREN_SYM Expression R_PAREN_SYM        { $$ = SymbolTable::ord($3); }
@@ -387,7 +385,7 @@ Expression9:    IDENT_SYM L_PAREN_SYM ExpressionList R_PAREN_SYM
 
 
 LValue:         IDENT_SYM                       { $$ = SymbolTable::makeLValue($1); }
-                | IDENT_SYM SubLValueStar       { $$ = NULL; std::cout << "I don't know how to do arrays and records. I quit until that assignment comes.\n" << std::endl; exit(0); }
+                | IDENT_SYM SubLValueStar       { $$ = NULL; std::cout << "I don't know how to do arrays and records. I quit until that assignment comes.\n" << std::endl; exit(1); }
                 /*| LValue DOT_SYM LValue*/
                 /*| IDENT_SYM L_BRACKET_SYM Expression R_BRACKET_SYM*/
                 ;
