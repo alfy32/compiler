@@ -46,6 +46,11 @@ LValue::LValue(std::string identifier) {
 	}
 }
 
+LValue::LValue(Type* type, Variable* variable) {
+	this->type = type;
+	this->variable = variable;
+}
+
 //// Table ////
 
 Table::Table() {
@@ -205,13 +210,7 @@ void SymbolTable::addVar(std::deque<std::string>* identList, Type* type) {
 	}
 
 	for(std::string identifier : *identList) {
-		Variable* var = new Variable(identifier, type, currentOffset, isLocalVar());
-		add(identifier, var);
-		currentOffset += type->size;
-	}
-
-	if(!isLocalVar()) {
-		globalOffset = currentOffset;
+		addVar(identifier, type);
 	}
 }
 
@@ -220,12 +219,28 @@ Variable* SymbolTable::addVar(std::string identifier, Type* type) {
 		error("Add var function found a null.");
 	}
 
-	Variable* var = new Variable(identifier, type, currentOffset, isLocalVar());
-	add(identifier, var);
-	currentOffset += type->size;
+	Variable* var = NULL;
 
-	if(!isLocalVar()) {
-		globalOffset = currentOffset;
+	if(type->isRecord) {
+		var = new Variable(identifier, type, globalOffset, false);
+		add(identifier, var);
+		
+		globalOffset += type->size;
+	} else if(type->isArray) {
+		var = new Variable(identifier, type, globalOffset, false);
+		add(identifier, var);
+		
+		globalOffset += type->size;
+	} else {
+		if(isLocalVar()) {
+			var = new Variable(identifier, type, currentOffset, isLocalVar());
+			currentOffset += type->size;
+		}
+		else {
+			var = new Variable(identifier, type, globalOffset, isLocalVar());
+			globalOffset += type->size;
+		}
+		add(identifier, var);
 	}
 
 	return var;
@@ -862,10 +877,6 @@ void SymbolTable::endBlock() {
 
 ////////////////////////// Lvalue //////////////////////////////////////////
 
-LValue* SymbolTable::makeLValue(std::string identifier) {
-	return new LValue(identifier);
-}
-
 std::deque<LValue*>* SymbolTable::makeLValueList(LValue* lvalue, std::deque<LValue*>* lvalues) {
 	if(lvalues == NULL) {
 		lvalues = new std::deque<LValue*>;
@@ -874,6 +885,52 @@ std::deque<LValue*>* SymbolTable::makeLValueList(LValue* lvalue, std::deque<LVal
 	lvalues->push_front(lvalue);
 
 	return lvalues;
+}
+
+LValue* SymbolTable::makeLValue(std::string identifier) {
+	return new LValue(identifier);
+}
+
+
+LValue* SymbolTable::makeRecordLValue(LValue* lvalue, std::string identifier) {
+	if(lvalue == NULL)
+		error("makeRecordLValue got a null lvalue.");
+	if(lvalue->variable == NULL)
+		error("This lvalue is not a record variable.");
+	if(lvalue->variable->type == NULL)
+		error("This variable doesn't have a type.");
+	if(lvalue->variable->type->isRecord == false) 
+		error("You can't use the dot symbol on a non record type.");
+	
+	Record* record = dynamic_cast<Record*>(lvalue->variable->type);
+
+	if(record->recordMap.find(identifier) == record->recordMap.end()) 
+		error("The record doesn't have the identifier " + identifier + " in it.");
+
+	std::pair<Type*, int> recordItem = record->recordMap[identifier];
+
+	Variable* variable = new Variable(identifier, recordItem.first, lvalue->variable->location + recordItem.second, false);
+	LValue* item = new LValue(recordItem.first, variable);
+
+	return item;
+}
+
+LValue* SymbolTable::makeArrayLValue(LValue* lvalue, Expression* expression) {
+	if(lvalue == NULL)
+		error("makeRecordLValue got a null lvalue.");
+	if(lvalue->variable == NULL)
+		error("This lvalue is not a array variable.");
+	if(lvalue->variable->type == NULL)
+		error("This variable doesn't have a type.");
+	if(lvalue->variable->type->isArray == false) 
+		error("You can't use the brackets on a non array type.");
+
+	Array* array = dynamic_cast<Array*>(lvalue->variable->type);
+
+	Variable* variable = new Variable("Element of " + array->name, array->type, lvalue->variable->location + (expression->getLocation() - array->low)*4, false);
+	LValue* item = new LValue(array->type, variable);
+
+	return item;
 }
 
 ////////////////////////////////////////////////////////////////////////////

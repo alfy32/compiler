@@ -68,6 +68,8 @@ public:
 class Type : public Symbol {
 public:
 	int size;
+	bool isArray;
+	bool isRecord;
 
 	Type();
 	Type(std::string identifier);
@@ -84,10 +86,10 @@ public:
 
 class Variable : public Symbol {
 private:
-	int location;
 	bool isLocal;
 public:
 	Type* type;
+	int location;
 
 	Variable(std::string name, Type* type, int location, bool isLocal);
 	std::string getLocation();

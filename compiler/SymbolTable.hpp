@@ -28,6 +28,7 @@ public:
 	Constant* constant;
 
 	LValue(std::string identifier);
+	LValue(Type*, Variable*);
 };
 
 class For {
@@ -174,8 +175,12 @@ public:
 
 	////////////////////////// Lvalue //////////////////////////////////////////
 
-	static LValue* makeLValue(std::string identifier);
 	static std::deque<LValue*>* makeLValueList(LValue*, std::deque<LValue*>*);
+
+	static LValue* makeLValue(std::string identifier);
+	static LValue* makeRecordLValue(LValue*, std::string);
+	static LValue* makeArrayLValue(LValue*, Expression*);
+
 
 	////////////////////////////////////////////////////////////////////////////
 

@@ -151,11 +151,17 @@ void Boolean::print(std::ostream& out) {
 Type::Type() {
 	name = "NO_NAME";
 	size = 4;
+
+	isArray = false;
+	isRecord = false;
 }
 
 Type::Type(std::string identifier) {
 	name = identifier;
 	size = 4;
+
+	isArray = false;
+	isRecord = false;
 }
 
 void Type::print(std::ostream& out) {
@@ -222,10 +228,12 @@ void Variable::print(std::ostream& out) {
 Record::Record() {
 	name = "NO_NAME";
 	size = 0;
+	isRecord = true;
 }
 
 Record::Record(std::deque<std::pair<std::deque<std::string>, Type*> >* recordItems) {
 	name = "Record";
+	isRecord = true;
 
 	int offset = 0;
 
@@ -248,6 +256,7 @@ void Record::print(std::ostream& out) {
 	out << "\tRecord Type: " << std::endl
 			  << "\tName: " << this->name << std::endl
 			  << "\tSize: " << this->size << std::endl
+			  << "\tisRecord: " << this->isRecord << std::endl
 			  << "\tElements: " << std::endl;
 
 	for(std::pair<std::string, std::pair<Type*, int> > pair : recordMap) {
@@ -271,6 +280,8 @@ Array::Array() {
 	upper = 0;
 
 	type = new Type();
+
+	isArray = true;
 }
 
 Array::Array(Constant* lower, Constant* up, Type* type) {
@@ -282,6 +293,8 @@ Array::Array(Constant* lower, Constant* up, Type* type) {
 	this->size = type->size*(upper-low+1);
 
 	this->type = type;
+
+	isArray = true;
 }
 
 void Array::print(std::ostream& out) {

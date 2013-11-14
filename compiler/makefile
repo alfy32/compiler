@@ -69,6 +69,14 @@ test: all
 	./cpsl test/test_personnel
 	java -jar mars.jar cpsl.asm
 
+array: all
+	./cpsl test/array
+	java -jar mars.jar cpsl.asm
+
+record: all
+	./cpsl test/record
+	java -jar mars.jar cpsl.asm
+
 bigTest: all
 	./cpsl test/bigTest
 	java -jar mars.jar cpsl.asm

@@ -1,0 +1,27 @@
+const
+  TABLEN = 20;
+  NAMELEN = 24;
+
+type
+  Person = record
+    age : integer;
+    name : string;
+  end;
+
+var
+  person : Person;
+
+function getName(p : Person) : string;
+begin
+  return p.name;
+end;
+
+BEGIN
+  person.name := "Alan";
+  person.age := 24;
+
+  write("My name is: ", person.name);
+  write(". I am ", person.age, " years old.");
+
+  write("\nMy name in a function: ", getName(person));
+END.

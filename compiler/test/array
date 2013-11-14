@@ -1,0 +1,30 @@
+const
+  TABLEN = 20;
+  NAMELEN = 24;
+
+type
+  ntype = array[1:NAMELEN] of char;
+
+var
+  a : ntype;
+
+procedure printName(b: ntype);
+var
+	i : integer;
+begin
+  for i := 1 to 4 do
+  	write(b[i]);
+  end;
+  write('\n');
+end;
+
+BEGIN
+  a[1] := 'A';
+  a[2] := 'l';
+  a[3] := 'a';
+  a[4] := 'n';
+
+  write(a[1]);
+
+  printName(a);
+END.

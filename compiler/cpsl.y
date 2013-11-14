@@ -317,6 +317,11 @@ Expression:     Expression OR_SYM Expression            { $$ = SymbolTable::expr
                 | Expression MULTIPLY_SYM Expression    { $$ = SymbolTable::expression($1, "mult", $3); }
                 | Expression DIVIDE_SYM Expression      { $$ = SymbolTable::expression($1, "div", $3); }
                 | Expression MOD_SYM Expression         { $$ = SymbolTable::expression($1, "mod", $3); }
+
+                // | IDENT_SYM
+                // | Expression DOT_SYM IDENT_SYM
+                // | Expression L_BRACKET_SYM Expression R_BRACKET_SYM
+
                 | TILDE_SYM Expression                  { $$ = SymbolTable::expression("~", $2); }
                 | NEG_SYM Expression                    { $$ = SymbolTable::expression("Neg", $2); }
                 | L_PAREN_SYM Expression R_PAREN_SYM    { $$ = $2; }
@@ -332,6 +337,7 @@ Expression:     Expression OR_SYM Expression            { $$ = SymbolTable::expr
                 | INT_CONST_SYM     { $$ = SymbolTable::integerConstToExpression($1); }
                 | CHAR_CONST_SYM    { $$ = SymbolTable::charConstToExpression($1); }
                 | STR_CONST_SYM     { $$ = SymbolTable::stringConstToExpression($1); }
+
                 ;
 
 /*Expression:     NEG_SYM Expression
@@ -384,22 +390,22 @@ Expression9:    IDENT_SYM L_PAREN_SYM ExpressionList R_PAREN_SYM
                 ;*/
 
 
-LValue:         IDENT_SYM                       { $$ = SymbolTable::makeLValue($1); }
-                | IDENT_SYM SubLValueStar       { $$ = NULL; std::cout << "I don't know how to do arrays and records. I quit until that assignment comes.\n" << std::endl; exit(1); }
-                /*| LValue DOT_SYM LValue*/
-                /*| IDENT_SYM L_BRACKET_SYM Expression R_BRACKET_SYM*/
+LValue:         IDENT_SYM                                       { $$ = SymbolTable::makeLValue($1); }
+                // | IDENT_SYM SubLValueStar       { $$ = NULL; std::cout << "I don't know how to do arrays and records. I quit until that assignment comes.\n" << std::endl; exit(1); }
+                | LValue DOT_SYM IDENT_SYM                      { $$ = SymbolTable::makeRecordLValue($1, $3); }
+                | LValue L_BRACKET_SYM Expression R_BRACKET_SYM { $$ = SymbolTable::makeArrayLValue($1, $3);  }
                 ;
 
 // LValue:         DOT_SYM IDENT_SYM
 //                 | 
 
-SubLValueStar:  SubLValue                       
-                | SubLValue SubLValueStar       
-                ;
+// SubLValueStar:  SubLValue                       
+//                 | SubLValue SubLValueStar       
+//                 ;
 
-SubLValue:      DOT_SYM IDENT_SYM                          // { $<std::string*>$ = new std::string($2); }
-                | L_BRACKET_SYM Expression R_BRACKET_SYM   // { $<int>$ = $2; }
-                ;
+// SubLValue:      DOT_SYM IDENT_SYM                          // { $<std::string*>$ = new std::string($2); }
+//                 | L_BRACKET_SYM Expression R_BRACKET_SYM   // { $<int>$ = $2; }
+//                 ;
 
 ConstExpression: ConstExpression OR_SYM ConstExpression             { $$ = SymbolTable::evalConstant($1,"|",$3); }
                 | ConstExpression AND_SYM ConstExpression           { $$ = SymbolTable::evalConstant($1,"&",$3); }
