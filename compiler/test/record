@@ -10,9 +10,13 @@ type
 
 var
   person : Person;
+  me : Person;
 
-function getName(p : Person) : string;
+function getName(a : integer; p,p2 : Person) : string;
 begin
+  write("\nI added an integer to make sure this works: ", a);
+  write("\nThe name of the second person is output here: ", p2.name);
+  write("\nNow I return the first name.");
   return p.name;
 end;
 
@@ -20,8 +24,14 @@ BEGIN
   person.name := "Alan";
   person.age := 24;
 
-  write("My name is: ", person.name);
+  me.name := "Joe";
+  me.age := 12;
+
+  write("Me...My name is: ", me.name);
+  write(". I am ", me.age, " years old.\n");
+
+  write("Person...My name is: ", person.name);
   write(". I am ", person.age, " years old.");
 
-  write("\nMy name in a function: ", getName(person));
+  write("\nMy name in a function: ", getName(1, me, person));
 END.

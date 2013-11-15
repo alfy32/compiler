@@ -198,19 +198,30 @@ Variable::Variable(std::string name, Type* type, int location, bool isLocal) {
 
 	this->name = name;
 	this->type = type;
-	this->location = location;
+	this->offset = location;
+	setLocation(location);
 }
 
-std::string Variable::getLocation() {
+void Variable::setLocation(int location) {
+	this->offset = location;
 	if(isLocal) {
-		return std::to_string(location) + "($sp)";
+		this->location =  std::to_string(location) + "($sp)";
 	} else {
-		return std::to_string(location) + "($gp)";
+		this->location =  std::to_string(location) + "($gp)";
 	}
 }
 
-int Variable::getOffset() {
+void Variable::setLocation(int offset, std::string pointer) {
+	this->offset = offset;
+	this->location = std::to_string(offset) + pointer;
+}
+
+std::string Variable::getLocation() {
 	return location;
+}
+
+int Variable::getOffset() {
+	return offset;
 }
 
 void Variable::print(std::ostream& out) {

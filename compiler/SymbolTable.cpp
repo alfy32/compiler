@@ -221,27 +221,19 @@ Variable* SymbolTable::addVar(std::string identifier, Type* type) {
 
 	Variable* var = NULL;
 
-	if(type->isRecord) {
-		var = new Variable(identifier, type, globalOffset, false);
-		add(identifier, var);
-		
-		globalOffset += type->size;
-	} else if(type->isArray) {
-		var = new Variable(identifier, type, globalOffset, false);
-		add(identifier, var);
-		
-		globalOffset += type->size;
-	} else {
-		if(isLocalVar()) {
-			var = new Variable(identifier, type, currentOffset, isLocalVar());
-			currentOffset += type->size;
-		}
-		else {
-			var = new Variable(identifier, type, globalOffset, isLocalVar());
-			globalOffset += type->size;
-		}
-		add(identifier, var);
+	if(isLocalVar()) {
+		var = new Variable(identifier, type, currentOffset, isLocalVar());
+		currentOffset += 4;
 	}
+	else {
+		var = new Variable(identifier, type, globalOffset, isLocalVar());
+		globalOffset += type->size;
+	}
+	add(identifier, var);
+
+	// std::cout << "Added Var: " << identifier << std::endl;
+	// type->print(std::cout);
+	// std::cout << "CurrOff: " << currentOffset << " GblOff: " << globalOffset << std::endl;
 
 	return var;
 }
@@ -472,11 +464,8 @@ Expression* SymbolTable::lValueToExpression(LValue* lvalue) {
 	if(lvalue->variable != NULL) {
 		Variable* variable = lvalue->variable;
 
-		std::ofstream& outFile = getInstance()->getFileStream();
-
-		expression = load(variable);
+		expression = load(variable);			
 		expression->type = variable->type;
-
 		return expression;
 	} else {
 
@@ -625,9 +614,14 @@ void SymbolTable::setUpArgs(std::deque<std::pair<std::string, Type*> > signature
 	int offset = 4;
 	int numArgs = signature.size()*4 + 4;
 
-	for(int i = 0; i < signature.size(); i++) {
+	for(int i = signature.size() -1; i >= 0; i--) {
 		std::pair<std::string, Type*> parameter = signature[i];
 		Expression* argument = expressionList[i];
+		
+		// std::cout << "\nArg: ";
+		// argument->type->print(std::cout);
+		// std::cout << "\nParam: ";
+		// parameter.second->print(std::cout);
 
 		if(argument == NULL) {
 			error("Argument " + std::to_string(i) + " is a null pointer. Talk to your compiler writer.");
@@ -637,11 +631,13 @@ void SymbolTable::setUpArgs(std::deque<std::pair<std::string, Type*> > signature
 			error("Argument " + std::to_string(i) + " is the wrong type.");
 		}
 
-		// if(i < 4) {
-		// 	printInstruction("move", "$a" + std::to_string(i) + ", $" + argument->location, "moving value to argument register.");
-		// }
+		offset += 4;
 
-		printInstruction("sw", "$" + argument->location + ", -" + std::to_string(numArgs - i*4) + "($sp)");
+		// if(argument->type->isArray || argument->type->isRecord) {
+		// 	printInstruction("la", "$" + argument->location + ", ($" + argument->location + ")", "get the address of the array or record.");
+		// } 
+
+		printInstruction("sw", "$" + argument->location + ", -" + std::to_string(offset) + "($sp)");
 	}
 }
 
@@ -793,7 +789,7 @@ std::deque<std::pair<std::deque<std::string>, Type*> >* SymbolTable::makeRecordI
 
 	std::pair<std::deque<std::string>, Type*> thePair = std::make_pair(*identList, type);
 
-	recordItem->push_back(thePair);
+	recordItem->push_front(thePair);
 
 	return recordItem;
 }
@@ -819,17 +815,16 @@ int SymbolTable::blockOffset = 0;
 void SymbolTable::beginBlock() {
 
 	blockOffset = currentOffset + 4;
-	if(!isLocalVar()) {
-		blockOffset = globalOffset;
-	}
-
+	
 	FunctionProcedure* functionProcedure = NULL;
 	if(getInstance()->functionProcedureStack.size() > 0) {
 		functionProcedure = getInstance()->functionProcedureStack.back();
-	
-		for(std::pair<std::string, Type*> pair : functionProcedure->signature) {
-			blockOffset += pair.second->size; 
-		}
+
+		// for(std::pair<std::string, Type*> pair : functionProcedure->signature) {
+		// 	blockOffset += pair.second->size; 
+		// }
+
+		blockOffset += functionProcedure->signature.size()*4;
 	}
 
 	printInstruction("addi", "$sp, $sp, -" + std::to_string(blockOffset));
@@ -839,10 +834,6 @@ void SymbolTable::beginBlock() {
 
 		for(std::pair<std::string, Type*> pair : functionProcedure->signature) {
 			Variable* var = addVar(pair.first, pair.second);
-
-			// std::string reg = "a" + std::to_string(aReg++);
-
-			// store(var, reg);
 		}
 	}
 
@@ -867,9 +858,11 @@ void SymbolTable::endBlock() {
 	} 
 	else
 	{
-		// outFile << "\t# end of program." << std::endl;
+		outFile << "# ******** end main function ********" << std::endl
+				<< std::endl;
 	}
 
+	currentOffset = 0;
 	blockOffset = 0;
 }
 
@@ -909,8 +902,15 @@ LValue* SymbolTable::makeRecordLValue(LValue* lvalue, std::string identifier) {
 
 	std::pair<Type*, int> recordItem = record->recordMap[identifier];
 
-	Variable* variable = new Variable(identifier, recordItem.first, lvalue->variable->location + recordItem.second, false);
+	
+
+	Variable* variable = new Variable(identifier, recordItem.first, lvalue->variable->getOffset() + recordItem.second, false);	
 	LValue* item = new LValue(recordItem.first, variable);
+
+	if(isLocalVar()) {
+		Expression* expression = load(lvalue->variable);
+		variable->setLocation(recordItem.second, "($" + expression->location + ")");
+	}
 
 	return item;
 }
@@ -927,7 +927,7 @@ LValue* SymbolTable::makeArrayLValue(LValue* lvalue, Expression* expression) {
 
 	Array* array = dynamic_cast<Array*>(lvalue->variable->type);
 
-	Variable* variable = new Variable("Element of " + array->name, array->type, lvalue->variable->location + (expression->getLocation() - array->low)*4, false);
+	Variable* variable = new Variable("Element of " + array->name, array->type, + (expression->getLocation() - array->low)*4, false);
 	LValue* item = new LValue(array->type, variable);
 
 	return item;
@@ -1009,14 +1009,6 @@ void SymbolTable::startMain() {
 }
 
 void SymbolTable::endMain() {
-	std::ofstream& outFile = getInstance()->getFileStream();
-
-	// outFile << "\tlw\t$ra, " << currentOffset << "($sp)" << "\t# Epilog." << std::endl
-	// 		<< "\taddi\t$sp, $sp, " << currentOffset+4 << "\t# End Epilog." << std::endl;
-
-	outFile << "# ******** end main function ********" << std::endl
-			<< std::endl;
-
 	pop(); 
 	pop(); 
 	printStringConstants();
@@ -1229,7 +1221,10 @@ Expression* SymbolTable::load(Variable* var) {
 
 	std::string result = std::to_string(resultLocation);
 
-	printInstruction("lw" ,"$" + result + ", " + var->getLocation());
+	if((var->type->isRecord || var->type->isArray) &&  !isLocalVar())
+		printInstruction("la" ,"$" + result + ", " + var->getLocation());
+	else
+		printInstruction("lw" ,"$" + result + ", " + var->getLocation());
 
 	return new Expression(resultLocation);
 }
