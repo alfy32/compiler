@@ -192,42 +192,41 @@ void SimpleType::print(std::ostream& out) {
 
 //// Variable ////
 
-Variable::Variable(std::string name, Type* type, int location, bool isLocal) {
+Variable::Variable(std::string name, Type* type, int offset, std::string pointer) {
 	this->isConstant = false;
-	this->isLocal = isLocal;
 
 	this->name = name;
 	this->type = type;
-	this->offset = location;
-	setLocation(location);
-}
-
-void Variable::setLocation(int location) {
-	this->offset = location;
-	if(isLocal) {
-		this->location =  std::to_string(location) + "($sp)";
-	} else {
-		this->location =  std::to_string(location) + "($gp)";
-	}
-}
-
-void Variable::setLocation(int offset, std::string pointer) {
 	this->offset = offset;
-	this->location = std::to_string(offset) + pointer;
+	this->pointer = pointer;
+
+	this->onStack = false;
+}
+	
+void Variable::setOffset(int offset) {
+	this->offset = offset;
 }
 
-std::string Variable::getLocation() {
-	return location;
+void Variable::setPointer(std::string pointer) {
+	this->pointer = pointer;
 }
 
 int Variable::getOffset() {
 	return offset;
 }
 
+std::string Variable::getPointer() {
+	return pointer;
+}
+
+std::string Variable::getFullLocation() {
+	return std::to_string(offset) + "(" + pointer + ")";
+}
+
 void Variable::print(std::ostream& out) {
 	out << "\tVariable:" << std::endl 
 			  << "\tName: " << name << std::endl
-			  << "\tLocation: " << this->location << std::endl 
+			  << "\tLocation: " << this->getFullLocation() << std::endl 
 			  << "\tSize: " << type->size << std::endl;
 	type->print(out);
 }

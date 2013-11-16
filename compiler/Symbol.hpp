@@ -86,18 +86,20 @@ public:
 
 class Variable : public Symbol {
 private:
-	bool isLocal;
-	std::string location;
+	std::string pointer;
 	int offset;
 public:
 	Type* type;
+	bool onStack;
 
-	Variable(std::string name, Type* type, int location, bool isLocal);
-	void setLocation(int);
-	void setLocation(int, std::string);
-	int getIntLocation();
-	std::string getLocation();
+	Variable(std::string name, Type* type, int offset, std::string pointer);
+
+	void setOffset(int);
+	void setPointer(std::string);
 	int getOffset();
+	std::string getPointer();
+	std::string getFullLocation();
+
 	virtual void print(std::ostream&);
 };
 

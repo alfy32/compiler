@@ -12,6 +12,7 @@ procedure printName(b: ntype);
 var
 	i : integer;
 begin
+  write("Printing Name: \n");
   for i := 1 to 4 do
   	write(b[i]);
   end;
@@ -25,6 +26,9 @@ BEGIN
   a[4] := 'n';
 
   write(a[1]);
+  write(a[2]);
+  write(a[3]);
+  write(a[4], '\n');
 
   printName(a);
 END.

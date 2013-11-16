@@ -122,7 +122,7 @@ public:
 	static Table initializedMainTable();
 	static bool isLocalVar();
 	static void addVar(std::deque<std::string>* identList, Type* type);
-	static Variable* addVar(std::string identifier, Type* type);
+	static Variable* addVar(std::string identifier, Type* type, bool isArg);
 	static void constDecl(std::string identifier, Constant* constExpression);
 	static void typeDecl(std::string identifier, Type* type);
 	static void funcProcDecl(std::string identifier, FunctionProcedure*);

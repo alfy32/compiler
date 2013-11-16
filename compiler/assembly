@@ -1,0 +1,23 @@
+.data
+GA:
+.space 321
+.
+.
+.
+
+la $t0, GA
+addi $t0, $t0, 24
+li $t0, 
+
+
+
+x.a[z].y
+
+la 		$8, GA
+addi	$8, $8, offset to A
+lw		$9, z
+mult	$9, sizeof(elem(A))
+mflo	$9, # this is the array offset
+add 	$8, $8, $9
+addi	$8, $8, offset to y
+lw		$9, 0($8)

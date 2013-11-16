@@ -210,11 +210,11 @@ void SymbolTable::addVar(std::deque<std::string>* identList, Type* type) {
 	}
 
 	for(std::string identifier : *identList) {
-		addVar(identifier, type);
+		addVar(identifier, type, false);
 	}
 }
 
-Variable* SymbolTable::addVar(std::string identifier, Type* type) {
+Variable* SymbolTable::addVar(std::string identifier, Type* type, bool isArg = true) {
 	if(type == NULL) {
 		error("Add var function found a null.");
 	}
@@ -222,11 +222,16 @@ Variable* SymbolTable::addVar(std::string identifier, Type* type) {
 	Variable* var = NULL;
 
 	if(isLocalVar()) {
-		var = new Variable(identifier, type, currentOffset, isLocalVar());
-		currentOffset += 4;
+		var = new Variable(identifier, type, currentOffset, "$sp");
+		if(isArg)
+			currentOffset += 4;
+		else {
+			currentOffset += type->size;
+			var->onStack = true;
+		}
 	}
 	else {
-		var = new Variable(identifier, type, globalOffset, isLocalVar());
+		var = new Variable(identifier, type, globalOffset, "$gp");
 		globalOffset += type->size;
 	}
 	add(identifier, var);
@@ -805,7 +810,7 @@ void SymbolTable::assignment(LValue* lvalue, Expression* expression) {
 		error("assignment got a null");
 	}
 
-	printInstruction("sw", "$" + expression->location + ", " + lvalue->variable->getLocation(), "assignment statement.");
+	printInstruction("sw", "$" + expression->location + ", " + lvalue->variable->getFullLocation(), "assignment statement.");
 }
 
 ////////////////////////// Blocks //////////////////////////////////////////
@@ -904,12 +909,18 @@ LValue* SymbolTable::makeRecordLValue(LValue* lvalue, std::string identifier) {
 
 	
 
-	Variable* variable = new Variable(identifier, recordItem.first, lvalue->variable->getOffset() + recordItem.second, false);	
+	Variable* variable = new Variable(identifier, recordItem.first, lvalue->variable->getOffset() + recordItem.second, lvalue->variable->getPointer());	
 	LValue* item = new LValue(recordItem.first, variable);
 
 	if(isLocalVar()) {
-		Expression* expression = load(lvalue->variable);
-		variable->setLocation(recordItem.second, "($" + expression->location + ")");
+		if(variable->getPointer() == "$sp") {
+			Expression* expression = load(lvalue->variable);
+			variable->setOffset(recordItem.second);
+			variable->setPointer("$" + expression->location);
+		}
+		else {
+			variable->setOffset(lvalue->variable->getOffset() + recordItem.second);
+		}
 	}
 
 	return item;
@@ -927,7 +938,29 @@ LValue* SymbolTable::makeArrayLValue(LValue* lvalue, Expression* expression) {
 
 	Array* array = dynamic_cast<Array*>(lvalue->variable->type);
 
-	Variable* variable = new Variable("Element of " + array->name, array->type, + (expression->getLocation() - array->low)*4, false);
+	int reg = getRegister();
+	int tempReg = getRegister();
+	int tempReg2 = getRegister();
+
+	//get the address
+	if(isLocalVar()) {
+		printInstruction("lw", "$" + std::to_string(reg) + ", " + lvalue->variable->getFullLocation(), "getting array offset.");
+		printInstruction("la", "$" + std::to_string(reg) + ", ($" + std::to_string(reg) + ")", "getting array offset.");
+	} else {
+		printInstruction("la", "$" + std::to_string(reg) + ", " + lvalue->variable->getFullLocation(), "getting array offset.");
+	}
+	
+	int offset = array->type->size;	
+	//add the offset
+	printInstruction("li", "$" + std::to_string(tempReg) + ", " + std::to_string(offset));
+	printInstruction("mult", "$" + expression->location + ", $" + std::to_string(tempReg));
+	printInstruction("mflo", "$" + std::to_string(tempReg2));
+	printInstruction("add", "$" + std::to_string(reg) + ", $" + std::to_string(reg) + ", $" + std::to_string(tempReg2), "end getting array offset.");
+
+	// tempReg is temp
+	currentRegister-=2;
+
+	Variable* variable = new Variable("Element of " + array->name, array->type, 0, "$" + std::to_string(reg));
 	LValue* item = new LValue(array->type, variable);
 
 	return item;
@@ -1092,7 +1125,7 @@ void SymbolTable::readInteger(Variable* variable) {
 
 	printInstruction("li", "$v0, 5", "read int");
 	printInstruction("syscall", "");
-	printInstruction("sw", "$v0, " + variable->getLocation());
+	printInstruction("sw", "$v0, " + variable->getFullLocation());
 }
 
 void SymbolTable::readString() {
@@ -1112,11 +1145,9 @@ void SymbolTable::readCharacter(Variable* variable) {
 		error("readCharacter got a null variable");
 	}
 
-	std::ofstream& outFile = getInstance()->getFileStream();
-
-	outFile << "\tli	$v0, 12" << "\t# read char." << std::endl
-			<< "\tsyscall" << std::endl
-			<< "\tsw	$v0, " << variable->getLocation() << std::endl;
+	printInstruction("li", "$v0, 12", "read char");
+	printInstruction("syscall", " ");
+	printInstruction("sw", "$v0, " + variable->getFullLocation(), "char read");
 }
 
 ////////////////////////////////////////////////////////////////////////////
@@ -1221,10 +1252,13 @@ Expression* SymbolTable::load(Variable* var) {
 
 	std::string result = std::to_string(resultLocation);
 
-	if((var->type->isRecord || var->type->isArray) &&  !isLocalVar())
-		printInstruction("la" ,"$" + result + ", " + var->getLocation());
+	if(
+		((var->type->isRecord || var->type->isArray) && !isLocalVar() )
+		|| (var->onStack && (var->type->isRecord || var->type->isArray))
+		)
+		printInstruction("la" ,"$" + result + ", " + var->getFullLocation());
 	else
-		printInstruction("lw" ,"$" + result + ", " + var->getLocation());
+		printInstruction("lw" ,"$" + result + ", " + var->getFullLocation());
 
 	return new Expression(resultLocation);
 }
@@ -1287,7 +1321,7 @@ void SymbolTable::store(Variable* variable, Expression* expression) {
 		error("Type mismatch on the store.");
 	}
 
-	printInstruction("sw", "$" + expression->location + ", " + variable->getLocation());
+	printInstruction("sw", "$" + expression->location + ", " + variable->getFullLocation());
 }
 
 void SymbolTable::store(Variable* variable, std::string reg) {
@@ -1295,7 +1329,7 @@ void SymbolTable::store(Variable* variable, std::string reg) {
 		error("store got a null.");
 	}
 
-	printInstruction("sw", "$" + reg + ", " + variable->getLocation());
+	printInstruction("sw", "$" + reg + ", " + variable->getFullLocation());
 }
 
 ////////////////////////////////////////////////////////////////////////////

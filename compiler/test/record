@@ -7,10 +7,15 @@ type
     age : integer;
     name : string;
   end;
+  Friend = record
+    p : Person;
+    nice : boolean;
+  end;
 
 var
   person : Person;
   me : Person;
+  friend : Friend;
 
 function getName(a : integer; p,p2 : Person) : string;
 begin
@@ -20,12 +25,40 @@ begin
   return p.name;
 end;
 
+function multiRecord(a,b : integer; p : Person; f : Friend) : integer;
+begin
+  write("a: ", a, '\n');
+  write("b: ", b, '\n');
+  write("My name is: ", p.name);
+  write(". I am ", p.age, " years old.\n");  
+  write("Friend:\n\tName: ", f.p.name, "\n\tAge: ", f.p.age, "\n\tNice: ", f.nice, '\n');
+  return 2;
+end;
+
+procedure recordInside();
+var
+  h : Friend;
+begin
+  h.p.name := "Sam";
+  h.p.age := 40;
+  h.nice := true;
+
+  write("\nFriend in procedure:\n\tName: ", h.p.name, "\n\tAge: ", h.p.age, "\n\tNice: ", h.nice, '\n');
+end;
+
 BEGIN
+
+  recordInside();
+  
   person.name := "Alan";
   person.age := 24;
 
   me.name := "Joe";
   me.age := 12;
+
+  friend.p.name := "Chris";
+  friend.p.age := 12;
+  friend.nice := false;
 
   write("Me...My name is: ", me.name);
   write(". I am ", me.age, " years old.\n");
@@ -34,4 +67,10 @@ BEGIN
   write(". I am ", person.age, " years old.");
 
   write("\nMy name in a function: ", getName(1, me, person));
+
+  write("\nFriend:\n\tName: ", friend.p.name, "\n\tAge: ", friend.p.age, "\n\tNice: ", friend.nice, '\n');
+
+  person.age := multiRecord(12,13,person, friend);
+
+  recordInside();
 END.
