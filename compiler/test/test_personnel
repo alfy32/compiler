@@ -56,7 +56,9 @@ end;
 
 procedure personread (var p:ptype);
 begin
+  write("Enter age: ");
   read(p.age);
+  write("Enter name: ");
   nameread(p.name);
 end;
 
@@ -119,6 +121,7 @@ begin
 end;
 
 begin
+  write("Enter number of persons: ");
   read(persons);
   if persons > TABLEN then 
     write("Too many persons (", persons, ").  Limit is ", TABLEN, '\n');
