@@ -942,7 +942,40 @@ LValue* SymbolTable::makeArrayLValue(LValue* lvalue, Expression* expression) {
 		error("You can't use the brackets on a non array type.");
 
 	Array* array = dynamic_cast<Array*>(lvalue->variable->type);
+
 	LValue* returnLvalue = NULL;
+
+	int reg = getRegister();
+	int tempReg = getRegister();
+	int tempReg2 = getRegister();
+
+	if(lvalue->variable->getPointer() == "$sp" && lvalue->variable->isParameter) {
+		printInstruction("lw", "$" + std::to_string(reg) + ", " + lvalue->variable->getFullLocation(), "getting array address");
+	} else {
+		printInstruction("la", "$" + std::to_string(reg) + ", " + lvalue->variable->getFullLocation(), "getting array address");
+	}
+	
+	printComment("calculating array offset");
+
+	printInstruction("  addi", "$" + expression->location + ", " + "$" + expression->location + ", " + std::to_string(-array->low));
+
+	int offset = array->type->size;	
+	//add the offset
+	printInstruction("  li", "$" + std::to_string(tempReg) + ", " + std::to_string(offset));
+	printInstruction("  mult", "$" + expression->location + ", $" + std::to_string(tempReg));
+	printInstruction("  mflo", "$" + std::to_string(tempReg2));
+	printInstruction("  add", "$" + std::to_string(reg) + ", $" + std::to_string(reg) + ", $" + std::to_string(tempReg2));
+
+	// tempReg is temp
+	currentRegister-=2;
+			
+	Variable* variable = new Variable("Element of " + array->name, array->type, 0, "$" + std::to_string(reg));
+
+	returnLvalue = new LValue(array->type, variable);
+
+	printComment("end calculating array offset");
+
+	return returnLvalue;
 
 	// int reg = getRegister();
 	// int tempReg = getRegister();
@@ -1429,6 +1462,8 @@ void SymbolTable::initFor(std::string identifier, Expression* expression) {
 	getInstance()->forStack.push_back(forVar);
 
 	store(variable, expression);
+
+	currentRegister = 8;
 }
 
 void SymbolTable::forLabel(std::string to) {
@@ -1455,6 +1490,8 @@ void SymbolTable::forEval(Expression* expression) {
 	} else {
 		error("We don't know if this is an up to or down to for loop.");
 	}
+
+	currentRegister = 8;
 }
 
 void SymbolTable::forEnd() {
