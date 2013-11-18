@@ -1,0 +1,134 @@
+	.text
+	.globl main
+main:
+	b       begin          # jump to main.
+
+# ******** printName procedure ********
+printName:
+	addi    $sp, $sp, -12  
+	sw      $ra, 8($sp)    
+	la      $8, str1       # const str to reg
+	li      $v0, 4         # str to console stuff
+	move    $a0, $8        #  
+	syscall                # End str to console.
+	li      $8, 1          # load const int.
+	sw      $8, 0($sp)     
+FOR1:
+	li      $9, 4          # load const int.
+	lw      $10, 0($sp)    
+	bgt     $10, $9, END_FOR1
+	lw      $11, 0($sp)    
+	lw      $12, 4($sp)    # getting array offset.
+	la      $12, ($12)     # getting array offset.
+	li      $13, 4         
+	mult    $11, $13       
+	mflo    $14            
+	add     $12, $12, $14  # end getting array offset.
+	lw      $13, 0($12)    
+	li      $v0, 11        # char to console stuff
+	move    $a0, $13       
+	syscall                # End char to console.
+	lw      $8, 0($sp)     
+	addi    $8, $8, 1      
+	sw      $8, 0($sp)     
+	b       FOR1           
+END_FOR1:
+	li      $8, '\n'       # load const char.
+	li      $v0, 11        # char to console stuff
+	move    $a0, $8        
+	syscall                # End char to console.
+printName_epilog:
+	lw      $ra, 8($sp)    
+	addi    $sp, $sp, 12   
+	jr      $ra            
+# ******** printName functionProcedure ********
+
+
+# ******** main function ********
+begin: 
+	addi    $sp, $sp, -4   
+	sw      $ra, 0($sp)    
+	li      $8, 1          # load const int.
+	la      $9, 0($gp)     # getting array offset.
+	li      $10, 4         
+	mult    $8, $10        
+	mflo    $11            
+	add     $9, $9, $11    # end getting array offset.
+	li      $10, 'A'       # load const char.
+	sw      $10, 0($9)     # assignment statement.
+	li      $8, 2          # load const int.
+	la      $9, 0($gp)     # getting array offset.
+	li      $10, 4         
+	mult    $8, $10        
+	mflo    $11            
+	add     $9, $9, $11    # end getting array offset.
+	li      $10, 'l'       # load const char.
+	sw      $10, 0($9)     # assignment statement.
+	li      $8, 3          # load const int.
+	la      $9, 0($gp)     # getting array offset.
+	li      $10, 4         
+	mult    $8, $10        
+	mflo    $11            
+	add     $9, $9, $11    # end getting array offset.
+	li      $10, 'a'       # load const char.
+	sw      $10, 0($9)     # assignment statement.
+	li      $8, 4          # load const int.
+	la      $9, 0($gp)     # getting array offset.
+	li      $10, 4         
+	mult    $8, $10        
+	mflo    $11            
+	add     $9, $9, $11    # end getting array offset.
+	li      $10, 'n'       # load const char.
+	sw      $10, 0($9)     # assignment statement.
+	li      $8, 1          # load const int.
+	la      $9, 0($gp)     # getting array offset.
+	li      $10, 4         
+	mult    $8, $10        
+	mflo    $11            
+	add     $9, $9, $11    # end getting array offset.
+	lw      $10, 0($9)     
+	li      $v0, 11        # char to console stuff
+	move    $a0, $10       
+	syscall                # End char to console.
+	li      $8, 2          # load const int.
+	la      $9, 0($gp)     # getting array offset.
+	li      $10, 4         
+	mult    $8, $10        
+	mflo    $11            
+	add     $9, $9, $11    # end getting array offset.
+	lw      $10, 0($9)     
+	li      $v0, 11        # char to console stuff
+	move    $a0, $10       
+	syscall                # End char to console.
+	li      $8, 3          # load const int.
+	la      $9, 0($gp)     # getting array offset.
+	li      $10, 4         
+	mult    $8, $10        
+	mflo    $11            
+	add     $9, $9, $11    # end getting array offset.
+	lw      $10, 0($9)     
+	li      $v0, 11        # char to console stuff
+	move    $a0, $10       
+	syscall                # End char to console.
+	li      $8, 4          # load const int.
+	la      $9, 0($gp)     # getting array offset.
+	li      $10, 4         
+	mult    $8, $10        
+	mflo    $11            
+	add     $9, $9, $11    # end getting array offset.
+	lw      $10, 0($9)     
+	li      $11, '\n'      # load const char.
+	li      $v0, 11        # char to console stuff
+	move    $a0, $10       
+	syscall                # End char to console.
+	li      $v0, 11        # char to console stuff
+	move    $a0, $11       
+	syscall                # End char to console.
+	la      $8, 0($gp)     
+	sw      $8, -8($sp)    
+	jal     printName      # procedure call.
+# ******** end main function ********
+
+	# This is the string area:
+	.data
+str1:	.asciiz "Printing Name: \n"

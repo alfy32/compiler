@@ -197,11 +197,8 @@ Table SymbolTable::initializedMainTable() {
 	return table;
 }
 
-bool SymbolTable::isLocalVar() {
-	if(getInstance()->symbolTable.size() <= 2) {
-		return false;
-	} 
-	return true;
+bool SymbolTable::isGlobalStack() {
+	return getInstance()->symbolTable.size() <= 2;
 }
 
 void SymbolTable::addVar(std::deque<std::string>* identList, Type* type) {
@@ -210,35 +207,42 @@ void SymbolTable::addVar(std::deque<std::string>* identList, Type* type) {
 	}
 
 	for(std::string identifier : *identList) {
-		addVar(identifier, type, false);
+		addVariable(identifier, type);
 	}
 }
 
-Variable* SymbolTable::addVar(std::string identifier, Type* type, bool isArg = true) {
+Variable* SymbolTable::addVariable(std::string identifier, Type* type) {
 	if(type == NULL) {
 		error("Add var function found a null.");
 	}
 
 	Variable* var = NULL;
 
-	if(isLocalVar()) {
-		var = new Variable(identifier, type, currentOffset, "$sp");
-		if(isArg)
-			currentOffset += 4;
-		else {
-			currentOffset += type->size;
-			var->onStack = true;
-		}
-	}
-	else {
+	if(isGlobalStack()) {
 		var = new Variable(identifier, type, globalOffset, "$gp");
 		globalOffset += type->size;
+	} else {
+		var = new Variable(identifier, type, currentOffset, "$sp");
+		currentOffset += type->size;
 	}
+
 	add(identifier, var);
 
-	// std::cout << "Added Var: " << identifier << std::endl;
-	// type->print(std::cout);
-	// std::cout << "CurrOff: " << currentOffset << " GblOff: " << globalOffset << std::endl;
+	return var;
+}
+
+Variable* SymbolTable::initParameter(std::string identifier, Type* type) {
+	if(type == NULL) {
+		error("Add var function found a null.");
+	}
+
+	Variable* var = NULL;
+
+	var = new Variable(identifier, type, currentOffset, "$sp");
+	var->isParameter = true;
+	currentOffset += 4;
+
+	add(identifier, var);
 
 	return var;
 }
@@ -469,7 +473,12 @@ Expression* SymbolTable::lValueToExpression(LValue* lvalue) {
 	if(lvalue->variable != NULL) {
 		Variable* variable = lvalue->variable;
 
-		expression = load(variable);			
+		if(variable->type->isRecord || variable->type->isArray) {
+			expression = loadAddress(variable);	
+		} else {
+			expression = load(variable);			
+		}
+
 		expression->type = variable->type;
 		return expression;
 	} else {
@@ -622,11 +631,6 @@ void SymbolTable::setUpArgs(std::deque<std::pair<std::string, Type*> > signature
 	for(int i = signature.size() -1; i >= 0; i--) {
 		std::pair<std::string, Type*> parameter = signature[i];
 		Expression* argument = expressionList[i];
-		
-		// std::cout << "\nArg: ";
-		// argument->type->print(std::cout);
-		// std::cout << "\nParam: ";
-		// parameter.second->print(std::cout);
 
 		if(argument == NULL) {
 			error("Argument " + std::to_string(i) + " is a null pointer. Talk to your compiler writer.");
@@ -838,7 +842,7 @@ void SymbolTable::beginBlock() {
 		int aReg = 0;
 
 		for(std::pair<std::string, Type*> pair : functionProcedure->signature) {
-			Variable* var = addVar(pair.first, pair.second);
+			Variable* var = initParameter(pair.first, pair.second);
 		}
 	}
 
@@ -907,23 +911,24 @@ LValue* SymbolTable::makeRecordLValue(LValue* lvalue, std::string identifier) {
 
 	std::pair<Type*, int> recordItem = record->recordMap[identifier];
 
-	
+	int offset = lvalue->variable->getOffset() + recordItem.second;
+	std::string pointer = lvalue->variable->getPointer();
 
-	Variable* variable = new Variable(identifier, recordItem.first, lvalue->variable->getOffset() + recordItem.second, lvalue->variable->getPointer());	
-	LValue* item = new LValue(recordItem.first, variable);
+	if(lvalue->variable->getPointer() == "$sp"){
+		Expression* expression = NULL;
+		if(lvalue->variable->isParameter) {
+			expression = load(lvalue->variable);
+		} else {
+			expression = loadAddress(lvalue->variable);
+		}
 
-	if(isLocalVar()) {
-		if(variable->getPointer() == "$sp") {
-			Expression* expression = load(lvalue->variable);
-			variable->setOffset(recordItem.second);
-			variable->setPointer("$" + expression->location);
-		}
-		else {
-			variable->setOffset(lvalue->variable->getOffset() + recordItem.second);
-		}
+		offset = recordItem.second;
+		pointer = "$" + expression->location;
 	}
 
-	return item;
+	Variable* variable = new Variable(identifier, recordItem.first, offset, pointer);
+
+	return new LValue(recordItem.first, variable);
 }
 
 LValue* SymbolTable::makeArrayLValue(LValue* lvalue, Expression* expression) {
@@ -937,33 +942,34 @@ LValue* SymbolTable::makeArrayLValue(LValue* lvalue, Expression* expression) {
 		error("You can't use the brackets on a non array type.");
 
 	Array* array = dynamic_cast<Array*>(lvalue->variable->type);
+	LValue* returnLvalue = NULL;
 
-	int reg = getRegister();
-	int tempReg = getRegister();
-	int tempReg2 = getRegister();
+	// int reg = getRegister();
+	// int tempReg = getRegister();
+	// int tempReg2 = getRegister();
 
-	//get the address
-	if(isLocalVar()) {
-		printInstruction("lw", "$" + std::to_string(reg) + ", " + lvalue->variable->getFullLocation(), "getting array offset.");
-		printInstruction("la", "$" + std::to_string(reg) + ", ($" + std::to_string(reg) + ")", "getting array offset.");
-	} else {
-		printInstruction("la", "$" + std::to_string(reg) + ", " + lvalue->variable->getFullLocation(), "getting array offset.");
-	}
+	// //get the address
+	// if(isLocalVar()) {
+	// 	printInstruction("lw", "$" + std::to_string(reg) + ", " + lvalue->variable->getFullLocation(), "getting array offset.");
+	// 	printInstruction("la", "$" + std::to_string(reg) + ", ($" + std::to_string(reg) + ")", "getting array offset.");
+	// } else {
+	// 	printInstruction("la", "$" + std::to_string(reg) + ", " + lvalue->variable->getFullLocation(), "getting array offset.");
+	// }
 	
-	int offset = array->type->size;	
-	//add the offset
-	printInstruction("li", "$" + std::to_string(tempReg) + ", " + std::to_string(offset));
-	printInstruction("mult", "$" + expression->location + ", $" + std::to_string(tempReg));
-	printInstruction("mflo", "$" + std::to_string(tempReg2));
-	printInstruction("add", "$" + std::to_string(reg) + ", $" + std::to_string(reg) + ", $" + std::to_string(tempReg2), "end getting array offset.");
+	// int offset = array->type->size;	
+	// //add the offset
+	// printInstruction("li", "$" + std::to_string(tempReg) + ", " + std::to_string(offset));
+	// printInstruction("mult", "$" + expression->location + ", $" + std::to_string(tempReg));
+	// printInstruction("mflo", "$" + std::to_string(tempReg2));
+	// printInstruction("add", "$" + std::to_string(reg) + ", $" + std::to_string(reg) + ", $" + std::to_string(tempReg2), "end getting array offset.");
 
-	// tempReg is temp
-	currentRegister-=2;
+	// // tempReg is temp
+	// currentRegister-=2;
 
-	Variable* variable = new Variable("Element of " + array->name, array->type, 0, "$" + std::to_string(reg));
-	LValue* item = new LValue(array->type, variable);
+	// Variable* variable = new Variable("Element of " + array->name, array->type, 0, "$" + std::to_string(reg));
+	// LValue* item = new LValue(array->type, variable);
 
-	return item;
+	return returnLvalue;
 }
 
 ////////////////////////////////////////////////////////////////////////////
@@ -1247,18 +1253,22 @@ Expression* SymbolTable::evalMod(Expression* left, Expression* right) {
 	return expression;
 }
 
+Expression* SymbolTable::loadAddress(Variable* var) {
+	int resultLocation = getRegister();
+
+	std::string result = std::to_string(resultLocation);
+
+	printInstruction("la" ,"$" + result + ", " + var->getFullLocation());
+	
+	return new Expression(resultLocation);
+}
+
 Expression* SymbolTable::load(Variable* var) {
 	int resultLocation = getRegister();
 
 	std::string result = std::to_string(resultLocation);
 
-	if(
-		((var->type->isRecord || var->type->isArray) && !isLocalVar() )
-		|| (var->onStack && (var->type->isRecord || var->type->isArray))
-		)
-		printInstruction("la" ,"$" + result + ", " + var->getFullLocation());
-	else
-		printInstruction("lw" ,"$" + result + ", " + var->getFullLocation());
+	printInstruction("lw" ,"$" + result + ", " + var->getFullLocation());
 
 	return new Expression(resultLocation);
 }

@@ -120,9 +120,10 @@ public:
 	static Symbol* lookup(std::string name);
 	static void pop();
 	static Table initializedMainTable();
-	static bool isLocalVar();
+	static bool isGlobalStack();
 	static void addVar(std::deque<std::string>* identList, Type* type);
-	static Variable* addVar(std::string identifier, Type* type, bool isArg);
+	static Variable* addVariable(std::string identifier, Type* type);
+	static Variable* initParameter(std::string identifier, Type* type);
 	static void constDecl(std::string identifier, Constant* constExpression);
 	static void typeDecl(std::string identifier, Type* type);
 	static void funcProcDecl(std::string identifier, FunctionProcedure*);
@@ -230,6 +231,7 @@ public:
 	static Expression* evalMult(Expression* left, Expression* right);
 	static Expression* evalDiv(Expression* left, Expression* right);
 	static Expression* evalMod(Expression* left, Expression* right);
+	static Expression* loadAddress(Variable* var);
 	static Expression* load(Variable* var);
 	static Expression* load(int location);
 	static Expression* load(std::string name);

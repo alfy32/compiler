@@ -200,7 +200,7 @@ Variable::Variable(std::string name, Type* type, int offset, std::string pointer
 	this->offset = offset;
 	this->pointer = pointer;
 
-	this->onStack = false;
+	this->isParameter = false;
 }
 	
 void Variable::setOffset(int offset) {

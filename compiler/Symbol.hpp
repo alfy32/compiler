@@ -90,7 +90,7 @@ private:
 	int offset;
 public:
 	Type* type;
-	bool onStack;
+	bool isParameter;
 
 	Variable(std::string name, Type* type, int offset, std::string pointer);
 
