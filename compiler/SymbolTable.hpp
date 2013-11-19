@@ -162,6 +162,7 @@ public:
 	static void error(std::string);
 
 	static void assignment(LValue*, Expression*);
+	static void copyRecord(LValue*, Expression*);
 
 	////////////////////////// Blocks //////////////////////////////////////////
 

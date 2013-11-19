@@ -473,7 +473,7 @@ Expression* SymbolTable::lValueToExpression(LValue* lvalue) {
 	if(lvalue->variable != NULL) {
 		Variable* variable = lvalue->variable;
 
-		if(variable->type->isRecord || variable->type->isArray) {
+		if( !variable->isParameter && (variable->type->isRecord || variable->type->isArray) ) {
 			expression = loadAddress(variable);	
 		} else {
 			expression = load(variable);			
@@ -814,7 +814,42 @@ void SymbolTable::assignment(LValue* lvalue, Expression* expression) {
 		error("assignment got a null");
 	}
 
-	printInstruction("sw", "$" + expression->location + ", " + lvalue->variable->getFullLocation(), "assignment statement.");
+	if(lvalue->variable != NULL && lvalue->variable->type != NULL && lvalue->variable->type->isRecord) {
+		copyRecord(lvalue, expression);
+	} else {
+		printInstruction("sw", "$" + expression->location + ", " + lvalue->variable->getFullLocation(), "assignment statement.");
+	}
+}
+
+void SymbolTable::copyRecord(LValue* lvalue, Expression* right) {
+	if(lvalue == NULL || right == NULL) {
+		error("copyRecord got a null");
+	}
+
+	Expression* left = NULL;
+	if(lvalue->variable->isParameter) {
+		left = load(lvalue->variable);
+	} else {
+		left = loadAddress(lvalue->variable);
+	}
+
+
+	Record* record = dynamic_cast<Record*>(lvalue->variable->type);
+
+	printComment("copying record");
+
+	std::string tempReg = "$" + std::to_string(getRegister());
+
+	for(std::pair<std::string, std::pair<Type*, int> > recordItem : record->recordMap) {
+		std::string offset = std::to_string(recordItem.second.second);
+
+		printInstruction("  lw", tempReg + ", " + offset + "($" + right->location + ")");
+		printInstruction("  sw", tempReg + ", " + offset + "($" + left->location  + ")");
+	}
+
+	currentRegister--;
+
+	printComment("end copying record");
 }
 
 ////////////////////////// Blocks //////////////////////////////////////////
