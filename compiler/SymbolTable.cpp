@@ -843,13 +843,80 @@ void SymbolTable::copyRecord(LValue* lvalue, Expression* right) {
 	for(std::pair<std::string, std::pair<Type*, int> > recordItem : record->recordMap) {
 		std::string offset = std::to_string(recordItem.second.second);
 
-		printInstruction("  lw", tempReg + ", " + offset + "($" + right->location + ")");
-		printInstruction("  sw", tempReg + ", " + offset + "($" + left->location  + ")");
+		if(recordItem.second.first->isArray) {
+			copyArray(*dynamic_cast<Array*>(recordItem.second.first), recordItem.second.second, left->location, recordItem.second.second, right->location);
+		} else {
+			printInstruction("  lw", tempReg + ", " + offset + "($" + right->location + ")");
+			printInstruction("  sw", tempReg + ", " + offset + "($" + left->location  + ")");
+		}
 	}
 
 	currentRegister--;
 
 	printComment("end copying record");
+}
+
+void SymbolTable::copyRecord(Record record, int lOffset, std::string lPointer, int rOffset, std::string rPointer) {
+	
+	printComment("copying record");
+
+	std::string tempReg = "$" + std::to_string(getRegister());
+
+	for(std::pair<std::string, std::pair<Type*, int> > recordItem : record.recordMap) {
+		int offset = recordItem.second.second;
+
+		if(recordItem.second.first->isArray) {
+
+			Array* array = dynamic_cast<Array*>(recordItem.second.first);
+			copyArray(*array, lOffset+offset, lPointer, rOffset + offset, rPointer);
+
+		} else if(recordItem.second.first->isRecord) {
+
+			Record* record = dynamic_cast<Record*>(recordItem.second.first);
+			copyRecord(*record, lOffset+offset, lPointer, rOffset + offset, rPointer);
+
+		} else {
+
+			printInstruction("  lw", tempReg + ", " + std::to_string(lOffset + offset) + "($" + rPointer + ")");
+			printInstruction("  sw", tempReg + ", " + std::to_string(rOffset + offset) + "($" + lPointer  + ")");
+		}
+	}
+
+	currentRegister--;
+
+	printComment("end copying record");
+}
+
+void SymbolTable::copyArray(Array iArray, int lOffset, std::string lPointer, int rOffset, std::string rPointer) {
+	
+	printComment("copying array");
+
+	std::string temReg = "$" + std::to_string(currentRegister);
+
+	
+	for(int i = 0; i <= iArray.upper-iArray.low; i++) {
+		if(iArray.type->isArray) {			
+
+			Array* array = dynamic_cast<Array*>(iArray.type);
+			
+			int offset = i * iArray.type->size;
+
+			copyArray(*array, lOffset+offset, lPointer, rOffset + offset, rPointer);
+
+		} else if(iArray.type->isRecord) {
+
+			Record* record = dynamic_cast<Record*>(iArray.type);
+
+			int offset = i * iArray.type->size;
+
+			copyRecord(*record, lOffset+offset, lPointer, rOffset+offset, rPointer);
+
+		} else {
+			printInstruction("  lw", temReg + ", " + std::to_string(rOffset + i*4) + "($" + rPointer + ")");
+			printInstruction("  sw", temReg + ", " + std::to_string(lOffset + i*4) + "($" + lPointer + ")");
+		}
+	}
+	printComment("end copying array");
 }
 
 ////////////////////////// Blocks //////////////////////////////////////////
@@ -902,6 +969,7 @@ void SymbolTable::endBlock() {
 	} 
 	else
 	{
+
 		outFile << "# ******** end main function ********" << std::endl
 				<< std::endl;
 	}
