@@ -522,18 +522,10 @@ Expression* SymbolTable::lValueToExpression(LValue* lvalue) {
 
 Expression* SymbolTable::integerConstToExpression(int value) {
 	return loadImmediateInt(value);
-
-	//TODO: figure out constant folding
-	// Type* type = dynamic_cast<Type*>(lookup("integer"));
-	// return new Expression(new IntegerConstant(value), type);
 }
 
 Expression* SymbolTable::charConstToExpression(std::string value) {
 	return loadImmediateChar(value);
-
-	//TODO: figure out constant folding.
-	// Type* type = dynamic_cast<Type*>(lookup("char"));
-	// return new Expression(new CharacterConstant(value), type);
 }
 
 Expression* SymbolTable::stringConstToExpression(std::string value) {
