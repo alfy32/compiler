@@ -823,48 +823,34 @@ void SymbolTable::assignment(LValue* lvalue, Expression* expression) {
 		error("assignment got a null");
 	}
 
-	// TODO: copy array?
-	
-	if(lvalue->variable != NULL && lvalue->variable->type != NULL && lvalue->variable->type->isRecord) {
-		copyRecord(lvalue, expression);
+	if(lvalue->variable == NULL && lvalue->variable->type == NULL)
+		error("assignment got a null variable or type.");
+
+	Type* type = lvalue->variable->type;
+
+	if(type->isRecord || type->isArray) {
+
+		Expression* left = NULL;
+		if(lvalue->variable->isParameter) {
+			left = load(lvalue->variable);
+		} else {
+			left = loadAddress(lvalue->variable);
+		}
+
+		if(type->isArray) {
+
+			Array* array = dynamic_cast<Array*>(lvalue->variable->type);
+			copyArray(*array, 0, left->location, 0, expression->location);
+
+		} else if(type->isRecord) {
+
+			Record* record = dynamic_cast<Record*>(lvalue->variable->type);
+			copyRecord(*record, 0, left->location, 0, expression->location);
+		} 
+
 	} else {
 		printInstruction("sw", "$" + expression->location + ", " + lvalue->variable->getFullLocation(), "assignment statement.");
 	}
-}
-
-void SymbolTable::copyRecord(LValue* lvalue, Expression* right) {
-	if(lvalue == NULL || right == NULL) {
-		error("copyRecord got a null");
-	}
-
-	Expression* left = NULL;
-	if(lvalue->variable->isParameter) {
-		left = load(lvalue->variable);
-	} else {
-		left = loadAddress(lvalue->variable);
-	}
-
-
-	Record* record = dynamic_cast<Record*>(lvalue->variable->type);
-
-	printComment("copying record");
-
-	std::string tempReg = "$" + std::to_string(getRegister());
-
-	for(std::pair<std::string, std::pair<Type*, int> > recordItem : record->recordMap) {
-		std::string offset = std::to_string(recordItem.second.second);
-
-		if(recordItem.second.first->isArray) {
-			copyArray(*dynamic_cast<Array*>(recordItem.second.first), recordItem.second.second, left->location, recordItem.second.second, right->location);
-		} else {
-			printInstruction("  lw", tempReg + ", " + offset + "($" + right->location + ")");
-			printInstruction("  sw", tempReg + ", " + offset + "($" + left->location  + ")");
-		}
-	}
-
-	currentRegister--;
-
-	printComment("end copying record");
 }
 
 void SymbolTable::copyRecord(Record record, int lOffset, std::string lPointer, int rOffset, std::string rPointer) {

@@ -163,7 +163,6 @@ public:
 	static void error(std::string);
 
 	static void assignment(LValue*, Expression*);
-	static void copyRecord(LValue*, Expression*);
 	static void copyRecord(Record record, int lOffset, std::string lPointer, int rOffset, std::string rPointer);
 	static void copyArray(Array array, int lOffset, std::string lPointer, int rOffset, std::string rPointer);
 
