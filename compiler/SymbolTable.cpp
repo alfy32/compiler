@@ -28,6 +28,11 @@ Expression::Expression(Constant* constant, Type* type) {
 	this->type = type;
 }
 
+Expression::Expression(Type* type, std::string location) {
+	type = type;
+	location = location;
+}
+
 int Expression::getLocation() {
 	return std::stoi(this->location);
 }
@@ -718,23 +723,27 @@ Expression* SymbolTable::function_call(std::string identifier, std::deque<Expres
 }
 
 Expression* SymbolTable::chr(Expression* symbol) {
-	// std::cout << "CHR: " << std::endl;
-	return new Expression(0);
+	if(symbol->type != dynamic_cast<Type*>(lookup("integer"))) 
+		error("the chr function only works on integers.");
+
+	return new Expression(dynamic_cast<Type*>(lookup("char")), symbol->location);
 }
 
 Expression* SymbolTable::ord(Expression* symbol) {
-	// std::cout << "ORD: " << std::endl;
-	return new Expression(0);
+	if(symbol->type != dynamic_cast<Type*>(lookup("char"))) 
+		error("the ord function only works on chars.");
+
+	return new Expression(dynamic_cast<Type*>(lookup("integer")), symbol->location);
 }
 
 Expression* SymbolTable::pred(Expression* symbol) {
-	// std::cout << "PRED: " << std::endl;
-	return new Expression(0);
+	//TODO: make it work
+	return symbol;
 }
 
 Expression* SymbolTable::succ(Expression* symbol) {
-	// std::cout << "SUCC: " << std::endl;
-	return new Expression(0);
+	//TODO: make it work
+	return symbol;
 }
 
 std::deque<Expression*>* SymbolTable::makeExpressionList(Expression* expression, std::deque<Expression*>* expressions) {
@@ -814,6 +823,8 @@ void SymbolTable::assignment(LValue* lvalue, Expression* expression) {
 		error("assignment got a null");
 	}
 
+	// TODO: copy array?
+	
 	if(lvalue->variable != NULL && lvalue->variable->type != NULL && lvalue->variable->type->isRecord) {
 		copyRecord(lvalue, expression);
 	} else {
@@ -1270,16 +1281,14 @@ void SymbolTable::readInteger(Variable* variable) {
 	printInstruction("sw", "$v0, " + variable->getFullLocation());
 }
 
-void SymbolTable::readString() {
-	// TODO: figure out how to do this.
+void SymbolTable::readString(Variable* variable) {
+	if(variable == NULL) {
+		error("readInteger got a null variable");
+	}
 
-	// std::ofstream& outFile = getInstance()->getFileStream();
-
-	// outFile << std::endl
-	// 		<< "# Reading an integer from the console." << std::endl
-	// 		<< "li		$v0, 5" << std::endl
-	// 		<< "syscall" << std::endl
-	// 		<< "move	$" << location << ", $v0" << std::endl;
+	printInstruction("li", "$v0, 8", "read string");
+	printInstruction("syscall", "");
+	printInstruction("sw", "$v0, " + variable->getFullLocation());
 }
 
 void SymbolTable::readCharacter(Variable* variable) {

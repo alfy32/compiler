@@ -18,6 +18,7 @@ public:
 
 	Expression(int location);
 	Expression(Constant*, Type* type);
+	Expression(Type*, std::string);
 	int getLocation();
 };
 
@@ -218,7 +219,7 @@ public:
 	static void writeString(int location);
 	static void read(std::deque<LValue*>*);
 	static void readInteger(Variable* variable);
-	static void readString();
+	static void readString(Variable* variable);
 	static void readCharacter(Variable* variable);
 
 	////////////////////////////////////////////////////////////////////////////
