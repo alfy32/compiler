@@ -67,7 +67,7 @@ test: all
 	./cpsl test/test_factorial
 	java -jar mars.jar cpsl.asm
 	./cpsl test/test_personnel
-	java -jar mars.jar cpsl.asm
+	java -jar mars.jar
 
 array: all
 	./cpsl test/array
@@ -95,7 +95,7 @@ factorial: all
 
 personnel: all
 	./cpsl test/test_personnel
-	java -jar mars.jar cpsl.asm
+	java -jar mars.jar
 
 if: test/if_statements
 	./cpsl test/if_statements
